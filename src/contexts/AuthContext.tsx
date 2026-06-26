@@ -8,11 +8,15 @@ import {
   useMemo,
   useState,
 } from "react";
-import type { User } from "@supabase/supabase-js";
-import { createClient } from "@/lib/supabase/client";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { createBrowserClient } from "@supabase/ssr";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
 import type { UserProfile, UserRole } from "@/lib/auth/types";
 import { isAdminRole } from "@/lib/auth/types";
+
+interface CloudConfig {
+  url: string;
+  anonKey: string;
+}
 
 interface AuthContextValue {
   user: User | null;
@@ -38,10 +42,24 @@ async function fetchProfile(): Promise<UserProfile | null> {
   }
 }
 
+async function fetchCloudConfig(): Promise<CloudConfig | null> {
+  try {
+    const res = await fetch("/api/config");
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (!json.cloudMode || !json.url || !json.anonKey) return null;
+    return { url: json.url, anonKey: json.anonKey };
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(isSupabaseConfigured);
+  const [loading, setLoading] = useState(true);
+  const [isCloudMode, setIsCloudMode] = useState(false);
+  const [supabase, setSupabase] = useState<SupabaseClient | null>(null);
 
   const refreshProfile = useCallback(async () => {
     if (!user) {
@@ -53,24 +71,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
-      setLoading(false);
-      return;
-    }
+    let subscription: { unsubscribe: () => void } | undefined;
 
-    const supabase = createClient();
-    if (!supabase) {
-      setLoading(false);
-      return;
-    }
+    async function init() {
+      const config = await fetchCloudConfig();
+      if (!config) {
+        setIsCloudMode(false);
+        setLoading(false);
+        return;
+      }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsCloudMode(true);
+      const client = createBrowserClient(config.url, config.anonKey);
+      setSupabase(client);
+
+      const {
+        data: { session },
+      } = await client.auth.getSession();
       setUser(session?.user ?? null);
-      setLoading(false);
-    });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      const { data } = client.auth.onAuthStateChange(async (_event, session) => {
         setUser(session?.user ?? null);
         if (session?.user) {
           const p = await fetchProfile();
@@ -78,44 +98,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           setProfile(null);
         }
-      }
-    );
+      });
+      subscription = data.subscription;
+      setLoading(false);
+    }
 
-    return () => subscription.unsubscribe();
+    init();
+
+    return () => subscription?.unsubscribe();
   }, []);
 
   useEffect(() => {
     if (user) refreshProfile();
   }, [user, refreshProfile]);
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    const supabase = createClient();
-    if (!supabase) return { error: "Supabase tidak dikonfigurasi" };
+  const signIn = useCallback(
+    async (email: string, password: string) => {
+      if (!supabase) return { error: "Supabase tidak dikonfigurasi" };
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { error: error.message };
-    return {};
-  }, []);
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) return { error: error.message };
+      return {};
+    },
+    [supabase]
+  );
 
   const signOut = useCallback(async () => {
-    const supabase = createClient();
     if (supabase) await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
-  }, []);
+  }, [supabase]);
 
   const value = useMemo(
     () => ({
       user,
       profile,
       loading,
-      isCloudMode: isSupabaseConfigured,
+      isCloudMode,
       isAdmin: profile ? isAdminRole(profile.role) : false,
       signIn,
       signOut,
       refreshProfile,
     }),
-    [user, profile, loading, signIn, signOut, refreshProfile]
+    [user, profile, loading, isCloudMode, signIn, signOut, refreshProfile]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

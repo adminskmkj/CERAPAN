@@ -10,7 +10,6 @@ export type SaveCerapanInput = Omit<
 > & { id?: string };
 
 async function isLoggedInCloud(): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
   try {
     const res = await fetch("/api/me");
     return res.ok;

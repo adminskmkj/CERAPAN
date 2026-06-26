@@ -1,4 +1,3 @@
-import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { listCerapan } from "@/lib/storage";
 
 const KEY = "senarai_guru";
@@ -18,7 +17,6 @@ function writeMap(map: Record<string, string[]>) {
 }
 
 async function isLoggedInCloud(): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
   try {
     const res = await fetch("/api/me");
     return res.ok;
@@ -40,7 +38,8 @@ export async function getSenaraiGuru(kodSekolah: string): Promise<string[]> {
   const kod = kodSekolah.trim().toUpperCase();
   if (!kod) return [];
 
-  if (await isLoggedInCloud()) {
+  const cloud = await isLoggedInCloud();
+  if (cloud) {
     try {
       const res = await fetch(`/api/guru?kodSekolah=${encodeURIComponent(kod)}`);
       if (res.ok) {
@@ -85,7 +84,8 @@ export async function tambahGuru(
   const nama = namaGuru.trim();
   if (!kod || !nama) return;
 
-  if (await isLoggedInCloud()) {
+  const cloud = await isLoggedInCloud();
+  if (cloud) {
     await fetch("/api/guru", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

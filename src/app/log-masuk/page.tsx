@@ -4,10 +4,9 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 export default function LogMasukPage() {
-  const { signIn, isCloudMode } = useAuth();
+  const { signIn, isCloudMode, loading: authLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") ?? "/dashboard";
@@ -16,6 +15,14 @@ export default function LogMasukPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  if (authLoading) {
+    return (
+      <div className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+        <p className="text-sm text-slate-500">Memuatkan...</p>
+      </div>
+    );
+  }
 
   if (!isCloudMode) {
     return (

@@ -1,6 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { isSupabaseConfigured, supabaseAnonKey, supabaseUrl } from "./config";
 
 const PUBLIC_PATHS = ["/", "/log-masuk"];
 
@@ -12,7 +11,9 @@ export async function updateSession(request: NextRequest) {
     return response;
   }
 
-  if (!isSupabaseConfigured) return response;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+  if (!supabaseUrl || !supabaseAnonKey) return response;
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
