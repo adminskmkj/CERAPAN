@@ -1,0 +1,228 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  calculateCerapan,
+  inputToScore,
+  type InputValue,
+} from "@/lib/scoring/standard4";
+import type { CerapanRecord } from "@/lib/types/cerapan";
+
+interface DbCerapan {
+  id: string;
+  school_id: string | null;
+  created_by: string | null;
+  kod_sekolah: string;
+  nama_sekolah: string;
+  nama_guru: string;
+  mata_pelajaran: string;
+  kelas: string;
+  sesi_pengisian: string;
+  tarikh: string;
+  kalendar_akademik: string;
+  nama_pemerhati: string | null;
+  jumlah_skor: number;
+  taraf: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface DbScore {
+  item_id: string;
+  input_value: number;
+  score_value: number;
+}
+
+function toRecord(row: DbCerapan, scores: Record<string, InputValue>): CerapanRecord {
+  const result = calculateCerapan(scores);
+  return {
+    id: row.id,
+    kodSekolah: row.kod_sekolah,
+    namaSekolah: row.nama_sekolah,
+    namaGuru: row.nama_guru,
+    mataPelajaran: row.mata_pelajaran,
+    kelas: row.kelas,
+    sesiPengisian: row.sesi_pengisian,
+    tarikh: row.tarikh,
+    kalendarAkademik: row.kalendar_akademik,
+    namaPemerhati: row.nama_pemerhati ?? undefined,
+    scores,
+    result,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+async function fetchScores(
+  supabase: SupabaseClient,
+  cerapanId: string
+): Promise<Record<string, InputValue>> {
+  const { data } = await supabase
+    .from("cerapan_scores")
+    .select("item_id, input_value")
+    .eq("cerapan_id", cerapanId);
+
+  const scores: Record<string, InputValue> = {};
+  for (const row of data ?? []) {
+    scores[row.item_id] = row.input_value as InputValue;
+  }
+  return scores;
+}
+
+export async function listCerapanSupabase(
+  supabase: SupabaseClient
+): Promise<CerapanRecord[]> {
+  const { data, error } = await supabase
+    .from("cerapan")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  if (!data?.length) return [];
+
+  const records: CerapanRecord[] = [];
+  for (const row of data as DbCerapan[]) {
+    const scores = await fetchScores(supabase, row.id);
+    records.push(toRecord(row, scores));
+  }
+  return records;
+}
+
+export async function getCerapanSupabase(
+  supabase: SupabaseClient,
+  id: string
+): Promise<CerapanRecord | null> {
+  const { data, error } = await supabase
+    .from("cerapan")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  const scores = await fetchScores(supabase, id);
+  return toRecord(data as DbCerapan, scores);
+}
+
+export async function saveCerapanSupabase(
+  supabase: SupabaseClient,
+  userId: string,
+  data: Omit<CerapanRecord, "id" | "createdAt" | "updatedAt" | "result"> & {
+    id?: string;
+  },
+  schoolId?: string | null
+): Promise<CerapanRecord> {
+  const result = calculateCerapan(data.scores);
+  const now = new Date().toISOString();
+
+  const payload = {
+    school_id: schoolId ?? null,
+    created_by: userId,
+    kod_sekolah: data.kodSekolah,
+    nama_sekolah: data.namaSekolah,
+    nama_guru: data.namaGuru,
+    mata_pelajaran: data.mataPelajaran,
+    kelas: data.kelas,
+    sesi_pengisian: data.sesiPengisian,
+    tarikh: data.tarikh,
+    kalendar_akademik: data.kalendarAkademik,
+    nama_pemerhati: data.namaPemerhati ?? null,
+    jumlah_skor: result.jumlahSkor,
+    taraf: result.taraf,
+    updated_at: now,
+  };
+
+  let cerapanId = data.id;
+
+  if (cerapanId) {
+    const { error } = await supabase
+      .from("cerapan")
+      .update(payload)
+      .eq("id", cerapanId);
+    if (error) throw error;
+    await supabase.from("cerapan_scores").delete().eq("cerapan_id", cerapanId);
+  } else {
+    const { data: inserted, error } = await supabase
+      .from("cerapan")
+      .insert(payload)
+      .select()
+      .single();
+    if (error) throw error;
+    cerapanId = inserted.id;
+  }
+
+  const scoreRows = Object.entries(data.scores).map(([itemId, input]) => ({
+    cerapan_id: cerapanId,
+    item_id: itemId,
+    input_value: input,
+    score_value: inputToScore(input),
+  }));
+
+  if (scoreRows.length) {
+    const { error } = await supabase.from("cerapan_scores").insert(scoreRows);
+    if (error) throw error;
+  }
+
+  const saved = await getCerapanSupabase(supabase, cerapanId!);
+  if (!saved) throw new Error("Gagal memuatkan rekod selepas simpan");
+  return saved;
+}
+
+export async function deleteCerapanSupabase(
+  supabase: SupabaseClient,
+  id: string
+): Promise<void> {
+  const { error } = await supabase.from("cerapan").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export function searchCerapanRecords(
+  records: CerapanRecord[],
+  query: { namaGuru?: string; kodSekolah?: string; taraf?: string }
+): CerapanRecord[] {
+  const q = {
+    namaGuru: query.namaGuru?.toLowerCase() ?? "",
+    kodSekolah: query.kodSekolah?.toLowerCase() ?? "",
+    taraf: query.taraf ?? "",
+  };
+
+  return records.filter((r) => {
+    if (q.namaGuru && !r.namaGuru.toLowerCase().includes(q.namaGuru)) return false;
+    if (q.kodSekolah && !r.kodSekolah.toLowerCase().includes(q.kodSekolah)) return false;
+    if (q.taraf && r.result.taraf !== q.taraf) return false;
+    return true;
+  });
+}
+
+export interface DashboardStats {
+  total: number;
+  byTaraf: Record<string, number>;
+  bySekolah: { nama: string; kod: string; count: number }[];
+  purataSkor: number;
+}
+
+export function computeStats(records: CerapanRecord[]): DashboardStats {
+  const byTaraf: Record<string, number> = {
+    CEMERLANG: 0,
+    BAIK: 0,
+    SEDERHANA: 0,
+    "PERLU TINDAKAN SEGERA": 0,
+  };
+  const schoolMap = new Map<string, { nama: string; kod: string; count: number }>();
+  let sumSkor = 0;
+
+  for (const r of records) {
+    byTaraf[r.result.taraf] = (byTaraf[r.result.taraf] ?? 0) + 1;
+    sumSkor += r.result.jumlahSkor;
+    const key = r.kodSekolah;
+    const existing = schoolMap.get(key);
+    if (existing) existing.count += 1;
+    else schoolMap.set(key, { nama: r.namaSekolah, kod: r.kodSekolah, count: 1 });
+  }
+
+  return {
+    total: records.length,
+    byTaraf,
+    bySekolah: [...schoolMap.values()].sort((a, b) => b.count - a.count),
+    purataSkor: records.length ? Math.round((sumSkor / records.length) * 100) / 100 : 0,
+  };
+}
