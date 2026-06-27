@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { StepIndicator } from "./StepIndicator";
 import { ScoringMatrix } from "./ScoringMatrix";
@@ -62,20 +62,46 @@ export function CerapanForm({ initial }: Props) {
     initial?.namaPemerhati ? "pilih" : "pilih"
   );
   const [pemerhatiBaharu, setPemerhatiBaharu] = useState("");
+  const [memuatkanGuru, setMemuatkanGuru] = useState(false);
+  const kodInputRef = useRef<HTMLInputElement>(null);
 
   const result = useMemo(() => calculateCerapan(form.scores), [form.scores]);
+
+  const kodSekolahAktif = form.kodSekolah.trim().toUpperCase();
 
   useEffect(() => {
     getSenaraiPemerhati().then(setSenaraiPemerhati);
   }, []);
 
   useEffect(() => {
-    const kod = form.kodSekolah.trim();
-    if (!kod) {
+    if (!kodSekolahAktif) {
       setSenaraiGuru([]);
       return;
     }
-    getSenaraiGuru(kod).then(setSenaraiGuru);
+    setMemuatkanGuru(true);
+    getSenaraiGuru(kodSekolahAktif)
+      .then(setSenaraiGuru)
+      .finally(() => setMemuatkanGuru(false));
+  }, [kodSekolahAktif]);
+
+  // Autofill browser kadang isi input tanpa onChange — sync ke state React
+  useEffect(() => {
+    const el = kodInputRef.current;
+    if (!el) return;
+
+    const syncAutofill = () => {
+      const nilai = el.value.trim().toUpperCase();
+      if (nilai && nilai !== form.kodSekolah.trim().toUpperCase()) {
+        setForm((f) => ({ ...f, kodSekolah: nilai }));
+      }
+    };
+
+    el.addEventListener("change", syncAutofill);
+    const timer = window.setInterval(syncAutofill, 400);
+    return () => {
+      el.removeEventListener("change", syncAutofill);
+      window.clearInterval(timer);
+    };
   }, [form.kodSekolah]);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -179,11 +205,27 @@ export function CerapanForm({ initial }: Props) {
                   {required ? " *" : ""}
                 </span>
                 <input
+                  ref={key === "kodSekolah" ? kodInputRef : undefined}
                   type={type}
+                  name={key}
+                  autoComplete={key === "kodSekolah" ? "off" : undefined}
                   value={form[key as keyof FormState] as string}
-                  onChange={(e) =>
-                    update(key as keyof FormState, e.target.value as never)
-                  }
+                  onChange={(e) => {
+                    const val =
+                      key === "kodSekolah"
+                        ? e.target.value.toUpperCase()
+                        : e.target.value;
+                    update(key as keyof FormState, val as never);
+                  }}
+                  onInput={(e) => {
+                    if (key !== "kodSekolah") return;
+                    const val = e.currentTarget.value.toUpperCase();
+                    update("kodSekolah", val);
+                  }}
+                  onBlur={(e) => {
+                    if (key !== "kodSekolah") return;
+                    update("kodSekolah", e.target.value.trim().toUpperCase());
+                  }}
                   className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none ring-brand-500 focus:ring-2"
                 />
               </label>
@@ -191,44 +233,50 @@ export function CerapanForm({ initial }: Props) {
 
             <div className="block text-sm sm:col-span-2">
               <span className="font-medium text-slate-700">Nama Guru *</span>
-              {form.kodSekolah.trim() ? (
-                <div className="mt-1 space-y-2">
-                  <select
-                    value={guruMode === "baharu" ? "__baharu__" : form.namaGuru}
-                    onChange={(e) => {
-                      if (e.target.value === "__baharu__") {
-                        setGuruMode("baharu");
-                        setGuruBaharu("");
-                      } else {
-                        setGuruMode("pilih");
-                        update("namaGuru", e.target.value);
-                      }
-                    }}
+              <div className="mt-1 space-y-2">
+                {!kodSekolahAktif && (
+                  <p className="text-xs text-amber-700">
+                    Isi kod sekolah untuk muat senarai guru sedia ada.
+                  </p>
+                )}
+                {memuatkanGuru && (
+                  <p className="text-xs text-slate-500">Memuatkan senarai guru...</p>
+                )}
+                <select
+                  value={guruMode === "baharu" ? "__baharu__" : form.namaGuru}
+                  onChange={(e) => {
+                    if (e.target.value === "__baharu__") {
+                      setGuruMode("baharu");
+                      setGuruBaharu("");
+                    } else {
+                      setGuruMode("pilih");
+                      update("namaGuru", e.target.value);
+                    }
+                  }}
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none ring-brand-500 focus:ring-2"
+                >
+                  <option value="">
+                    {senaraiGuru.length
+                      ? "— Pilih guru —"
+                      : "— Tiada dalam senarai, tambah baharu —"}
+                  </option>
+                  {senaraiGuru.map((nama) => (
+                    <option key={nama} value={nama}>
+                      {nama}
+                    </option>
+                  ))}
+                  <option value="__baharu__">+ Tambah guru baharu</option>
+                </select>
+                {guruMode === "baharu" && (
+                  <input
+                    type="text"
+                    value={guruBaharu}
+                    onChange={(e) => setGuruBaharu(e.target.value)}
+                    placeholder="Masukkan nama guru baharu"
                     className="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none ring-brand-500 focus:ring-2"
-                  >
-                    <option value="">— Pilih guru —</option>
-                    {senaraiGuru.map((nama) => (
-                      <option key={nama} value={nama}>
-                        {nama}
-                      </option>
-                    ))}
-                    <option value="__baharu__">+ Tambah guru baharu</option>
-                  </select>
-                  {guruMode === "baharu" && (
-                    <input
-                      type="text"
-                      value={guruBaharu}
-                      onChange={(e) => setGuruBaharu(e.target.value)}
-                      placeholder="Masukkan nama guru baharu"
-                      className="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none ring-brand-500 focus:ring-2"
-                    />
-                  )}
-                </div>
-              ) : (
-                <p className="mt-1 rounded-xl border border-dashed border-slate-200 px-3 py-2.5 text-slate-500">
-                  Isi kod sekolah dahulu untuk memaparkan senarai guru.
-                </p>
-              )}
+                  />
+                )}
+              </div>
             </div>
 
             <div className="block text-sm sm:col-span-2">

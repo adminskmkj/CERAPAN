@@ -30,26 +30,32 @@ export async function getSenaraiGuru(kodSekolah: string): Promise<string[]> {
   const kod = kodSekolah.trim().toUpperCase();
   if (!kod) return [];
 
+  let fromApi: string[] = [];
   if (await isCloudEnabled()) {
     try {
       const res = await fetch(`/api/guru?kodSekolah=${encodeURIComponent(kod)}`);
       if (res.ok) {
         const json = await res.json();
-        return json.namaGuru ?? [];
+        fromApi = json.namaGuru ?? [];
       }
     } catch {
-      /* fallback local */
+      /* gabung dengan sumber tempatan di bawah */
     }
   }
 
   const fromStore = readMap()[kod] ?? [];
-  const records = await listCerapan();
-  const fromHistory = records
-    .filter((r) => r.kodSekolah.toUpperCase() === kod)
-    .map((r) => r.namaGuru.trim())
-    .filter(Boolean);
+  let fromHistory: string[] = [];
+  try {
+    const records = await listCerapan();
+    fromHistory = records
+      .filter((r) => r.kodSekolah.toUpperCase() === kod)
+      .map((r) => r.namaGuru.trim())
+      .filter(Boolean);
+  } catch {
+    /* abaikan */
+  }
 
-  return [...new Set([...fromStore, ...fromHistory])].sort((a, b) =>
+  return [...new Set([...fromApi, ...fromStore, ...fromHistory])].sort((a, b) =>
     a.localeCompare(b, "ms")
   );
 }

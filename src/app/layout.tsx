@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Newsreader } from "next/font/google";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AuthProvider } from "@/contexts/AuthContext";
 import "./globals.css";
@@ -7,6 +7,13 @@ import "./globals.css";
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-geist-sans",
+});
+
+const serif = Newsreader({
+  subsets: ["latin"],
+  variable: "--font-serif",
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
 });
 
 export const metadata: Metadata = {
@@ -20,10 +27,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ms">
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} ${serif.variable} font-sans antialiased`}>
         <AuthProvider>
           <AppHeader />
-          <main className="laporan-main mx-auto max-w-6xl px-4 py-8">{children}</main>
+          <main className="mx-auto max-w-6xl px-4 py-10 md:py-14">{children}</main>
         </AuthProvider>
       </body>
     </html>
