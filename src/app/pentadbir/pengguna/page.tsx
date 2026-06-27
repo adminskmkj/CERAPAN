@@ -83,32 +83,37 @@ export default function PentadbirPenggunaPage() {
     }
   }
 
-  if (authLoading) return <p className="text-slate-500">Memuatkan...</p>;
+  if (authLoading)
+    return <p className="text-muted">Memuatkan…</p>;
 
   if (!isCloudMode) {
     return (
       <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">
-        Panel pentadbir memerlukan Supabase. Sila konfigurasi `.env.local` terlebih dahulu.
+        Panel pentadbir memerlukan Supabase. Sila konfigurasi `.env.local`
+        terlebih dahulu.
       </div>
     );
   }
 
   if (!isAdmin) return null;
 
+  const inputCls = "mt-1 w-full rounded-xl border border-stone px-3 py-2.5";
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Urus Pengguna</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="eyebrow">Pentadbir</p>
+        <h1 className="mt-2 text-3xl md:text-4xl">Urus Pengguna</h1>
+        <p className="mt-1 text-sm text-muted">
           Cipta akaun e-mel baharu untuk pegawai cerapan dan pentadbir.
         </p>
       </div>
 
       <form
         onSubmit={handleCreate}
-        className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+        className="rounded-2xl border border-stone bg-paper-card p-6 shadow-soft md:p-8"
       >
-        <h2 className="font-semibold text-slate-900">Cipta Akaun Baharu</h2>
+        <h2 className="text-lg">Cipta Akaun Baharu</h2>
 
         {error && (
           <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -116,51 +121,53 @@ export default function PentadbirPenggunaPage() {
           </div>
         )}
         {success && (
-          <div className="mt-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+          <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
             {success}
           </div>
         )}
 
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <label className="text-sm">
-            <span className="font-medium">E-mel Baharu *</span>
+            <span className="font-medium text-ink-2">E-mel Baharu *</span>
             <input
               type="email"
               required
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="mt-1 w-full rounded-xl border px-3 py-2.5"
+              className={inputCls}
               placeholder="cerap@sekolah.edu.my"
             />
           </label>
           <label className="text-sm">
-            <span className="font-medium">Kata Laluan Sementara *</span>
+            <span className="font-medium text-ink-2">
+              Kata Laluan Sementara *
+            </span>
             <input
               type="password"
               required
               minLength={8}
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
-              className="mt-1 w-full rounded-xl border px-3 py-2.5"
+              className={inputCls}
             />
           </label>
           <label className="text-sm">
-            <span className="font-medium">Nama Penuh *</span>
+            <span className="font-medium text-ink-2">Nama Penuh *</span>
             <input
               required
               value={form.fullName}
               onChange={(e) => setForm({ ...form, fullName: e.target.value })}
-              className="mt-1 w-full rounded-xl border px-3 py-2.5"
+              className={inputCls}
             />
           </label>
           <label className="text-sm">
-            <span className="font-medium">Peranan *</span>
+            <span className="font-medium text-ink-2">Peranan *</span>
             <select
               value={form.role}
               onChange={(e) =>
                 setForm({ ...form, role: e.target.value as UserRole })
               }
-              className="mt-1 w-full rounded-xl border px-3 py-2.5"
+              className={inputCls}
             >
               {Object.entries(ROLE_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>
@@ -174,32 +181,36 @@ export default function PentadbirPenggunaPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="mt-4 rounded-xl bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+          className="mt-6 rounded-full bg-accent px-6 py-2.5 text-sm font-semibold text-white shadow-soft transition hover:opacity-90 disabled:opacity-60"
         >
-          {submitting ? "Sedang mencipta akaun..." : "Cipta Akaun"}
+          {submitting ? "Sedang mencipta akaun…" : "Cipta Akaun"}
         </button>
         {submitting && (
-          <p className="mt-2 text-xs text-slate-500">
+          <p className="mt-2 text-xs text-muted">
             Biasanya 1–3 saat. Kali pertama mungkin ambil 10–20 saat.
           </p>
         )}
       </form>
 
-      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-x-auto rounded-2xl border border-stone bg-paper-card shadow-soft">
         <table className="w-full min-w-[560px] text-sm">
-          <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
-            <tr>
-              <th className="px-4 py-3">Nama</th>
-              <th className="px-4 py-3">Peranan</th>
-              <th className="px-4 py-3">Dicipta</th>
+          <thead>
+            <tr className="border-b border-stone bg-stone-2 text-left text-xs uppercase tracking-wider text-muted">
+              <th className="px-4 py-3 font-semibold">Nama</th>
+              <th className="px-4 py-3 font-semibold">Peranan</th>
+              <th className="px-4 py-3 font-semibold">Dicipta</th>
             </tr>
           </thead>
           <tbody>
             {users.map((u) => (
-              <tr key={u.id} className="border-t border-slate-100">
-                <td className="px-4 py-3 font-medium">{u.full_name}</td>
-                <td className="px-4 py-3">{ROLE_LABELS[u.role]}</td>
-                <td className="px-4 py-3 text-slate-500">
+              <tr key={u.id} className="border-b border-stone-2 last:border-0">
+                <td className="px-4 py-3 font-medium text-ink">
+                  {u.full_name}
+                </td>
+                <td className="px-4 py-3 text-ink-2">
+                  {ROLE_LABELS[u.role]}
+                </td>
+                <td className="px-4 py-3 font-mono text-muted">
                   {new Date(u.created_at).toLocaleDateString("ms-MY")}
                 </td>
               </tr>

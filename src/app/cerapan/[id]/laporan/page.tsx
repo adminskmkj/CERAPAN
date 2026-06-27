@@ -20,15 +20,18 @@ export default function LaporanPage() {
   }, [id]);
 
   if (loading) {
-    return <p className="text-slate-500">Memuatkan laporan...</p>;
+    return <p className="text-muted">Memuatkan laporan…</p>;
   }
 
   if (!record) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
-        <p className="text-slate-600">Rekod tidak dijumpai.</p>
-        <Link href="/senarai" className="mt-4 inline-block text-brand-700">
-          Kembali ke senarai
+      <div className="rounded-2xl border border-stone bg-paper-card p-8 text-center shadow-soft">
+        <p className="text-muted">Rekod tidak dijumpai.</p>
+        <Link
+          href="/senarai"
+          className="mt-4 inline-block text-sm font-semibold text-accent"
+        >
+          ← Kembali ke senarai
         </Link>
       </div>
     );

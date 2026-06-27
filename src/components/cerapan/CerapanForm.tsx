@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { StepIndicator } from "./StepIndicator";
 import { ScoringMatrix } from "./ScoringMatrix";
@@ -13,7 +13,10 @@ import {
 } from "@/lib/scoring/standard4";
 import { ensureScores, saveCerapan } from "@/lib/storage";
 import { getSenaraiGuru, tambahGuru } from "@/lib/storage/guru-store";
-import { getSenaraiPemerhati, tambahPemerhati } from "@/lib/storage/pentadbir-store";
+import {
+  getSenaraiPentadbir,
+  tambahPentadbir,
+} from "@/lib/storage/pentadbir-store";
 import { cn } from "@/lib/utils";
 
 interface FormState {
@@ -57,51 +60,25 @@ export function CerapanForm({ initial }: Props) {
     initial?.namaGuru ? "pilih" : "pilih"
   );
   const [guruBaharu, setGuruBaharu] = useState("");
-  const [senaraiPemerhati, setSenaraiPemerhati] = useState<string[]>([]);
-  const [pemerhatiMode, setPemerhatiMode] = useState<"pilih" | "baharu">(
+  const [senaraiPentadbir, setSenaraiPentadbir] = useState<string[]>([]);
+  const [pentadbirMode, setPentadbirMode] = useState<"pilih" | "baharu">(
     initial?.namaPemerhati ? "pilih" : "pilih"
   );
-  const [pemerhatiBaharu, setPemerhatiBaharu] = useState("");
-  const [memuatkanGuru, setMemuatkanGuru] = useState(false);
-  const kodInputRef = useRef<HTMLInputElement>(null);
+  const [pentadbirBaharu, setPentadbirBaharu] = useState("");
 
   const result = useMemo(() => calculateCerapan(form.scores), [form.scores]);
 
-  const kodSekolahAktif = form.kodSekolah.trim().toUpperCase();
-
   useEffect(() => {
-    getSenaraiPemerhati().then(setSenaraiPemerhati);
+    getSenaraiPentadbir().then(setSenaraiPentadbir);
   }, []);
 
   useEffect(() => {
-    if (!kodSekolahAktif) {
+    const kod = form.kodSekolah.trim();
+    if (!kod) {
       setSenaraiGuru([]);
       return;
     }
-    setMemuatkanGuru(true);
-    getSenaraiGuru(kodSekolahAktif)
-      .then(setSenaraiGuru)
-      .finally(() => setMemuatkanGuru(false));
-  }, [kodSekolahAktif]);
-
-  // Autofill browser kadang isi input tanpa onChange — sync ke state React
-  useEffect(() => {
-    const el = kodInputRef.current;
-    if (!el) return;
-
-    const syncAutofill = () => {
-      const nilai = el.value.trim().toUpperCase();
-      if (nilai && nilai !== form.kodSekolah.trim().toUpperCase()) {
-        setForm((f) => ({ ...f, kodSekolah: nilai }));
-      }
-    };
-
-    el.addEventListener("change", syncAutofill);
-    const timer = window.setInterval(syncAutofill, 400);
-    return () => {
-      el.removeEventListener("change", syncAutofill);
-      window.clearInterval(timer);
-    };
+    getSenaraiGuru(kod).then(setSenaraiGuru);
   }, [form.kodSekolah]);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -112,9 +89,9 @@ export function CerapanForm({ initial }: Props) {
     return guruMode === "baharu" ? guruBaharu.trim() : form.namaGuru.trim();
   }
 
-  function getNamaPemerhatiAkhir() {
-    return pemerhatiMode === "baharu"
-      ? pemerhatiBaharu.trim()
+  function getNamaPentadbirAkhir() {
+    return pentadbirMode === "baharu"
+      ? pentadbirBaharu.trim()
       : form.namaPemerhati.trim();
   }
 
@@ -136,8 +113,8 @@ export function CerapanForm({ initial }: Props) {
       setError("Sila pilih atau masukkan nama guru.");
       return false;
     }
-    if (!getNamaPemerhatiAkhir()) {
-      setError("Sila pilih atau masukkan nama pemerhati.");
+    if (!getNamaPentadbirAkhir()) {
+      setError("Sila pilih atau masukkan nama pentadbir / pemerhati.");
       return false;
     }
     setError("");
@@ -149,9 +126,9 @@ export function CerapanForm({ initial }: Props) {
     setError("");
     try {
       const namaGuru = getNamaGuruAkhir();
-      const namaPemerhati = getNamaPemerhatiAkhir();
+      const namaPentadbir = getNamaPentadbirAkhir();
       tambahGuru(form.kodSekolah, namaGuru);
-      tambahPemerhati(namaPemerhati);
+      tambahPentadbir(namaPentadbir);
 
       const record = await saveCerapan({
         id: initial?.id,
@@ -163,7 +140,7 @@ export function CerapanForm({ initial }: Props) {
         sesiPengisian: form.sesiPengisian,
         tarikh: form.tarikh,
         kalendarAkademik: form.kalendarAkademik,
-        namaPemerhati,
+        namaPemerhati: namaPentadbir,
         scores: ensureScores(form.scores),
       });
       router.push(`/cerapan/${record.id}/laporan`);
@@ -172,6 +149,9 @@ export function CerapanForm({ initial }: Props) {
       setSaving(false);
     }
   }
+
+  const inputCls =
+    "mt-1 w-full rounded-xl border border-stone px-3 py-2.5";
 
   return (
     <div className="space-y-6">
@@ -184,10 +164,11 @@ export function CerapanForm({ initial }: Props) {
       )}
 
       {step === 1 && (
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-900">Maklumat Cerapan</h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Isi maklumat sekolah, guru, dan pemerhati yang mencerap.
+        <section className="rounded-2xl border border-stone bg-paper-card p-6 shadow-soft md:p-8">
+          <p className="eyebrow">Langkah 1</p>
+          <h2 className="mt-2 text-xl">Maklumat Cerapan</h2>
+          <p className="mt-1 text-sm text-muted">
+            Isi maklumat sekolah, guru, dan pentadbir yang mencerap.
           </p>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             {(
@@ -200,129 +181,111 @@ export function CerapanForm({ initial }: Props) {
               ] as const
             ).map(([key, label, type, required]) => (
               <label key={key} className="block text-sm">
-                <span className="font-medium text-slate-700">
+                <span className="font-medium text-ink-2">
                   {label}
                   {required ? " *" : ""}
                 </span>
                 <input
-                  ref={key === "kodSekolah" ? kodInputRef : undefined}
                   type={type}
-                  name={key}
-                  autoComplete={key === "kodSekolah" ? "off" : undefined}
                   value={form[key as keyof FormState] as string}
-                  onChange={(e) => {
-                    const val =
-                      key === "kodSekolah"
-                        ? e.target.value.toUpperCase()
-                        : e.target.value;
-                    update(key as keyof FormState, val as never);
-                  }}
-                  onInput={(e) => {
-                    if (key !== "kodSekolah") return;
-                    const val = e.currentTarget.value.toUpperCase();
-                    update("kodSekolah", val);
-                  }}
-                  onBlur={(e) => {
-                    if (key !== "kodSekolah") return;
-                    update("kodSekolah", e.target.value.trim().toUpperCase());
-                  }}
-                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none ring-brand-500 focus:ring-2"
+                  onChange={(e) =>
+                    update(key as keyof FormState, e.target.value as never)
+                  }
+                  className={inputCls}
                 />
               </label>
             ))}
 
             <div className="block text-sm sm:col-span-2">
-              <span className="font-medium text-slate-700">Nama Guru *</span>
-              <div className="mt-1 space-y-2">
-                {!kodSekolahAktif && (
-                  <p className="text-xs text-amber-700">
-                    Isi kod sekolah untuk muat senarai guru sedia ada.
-                  </p>
-                )}
-                {memuatkanGuru && (
-                  <p className="text-xs text-slate-500">Memuatkan senarai guru...</p>
-                )}
-                <select
-                  value={guruMode === "baharu" ? "__baharu__" : form.namaGuru}
-                  onChange={(e) => {
-                    if (e.target.value === "__baharu__") {
-                      setGuruMode("baharu");
-                      setGuruBaharu("");
-                    } else {
-                      setGuruMode("pilih");
-                      update("namaGuru", e.target.value);
-                    }
-                  }}
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none ring-brand-500 focus:ring-2"
-                >
-                  <option value="">
-                    {senaraiGuru.length
-                      ? "— Pilih guru —"
-                      : "— Tiada dalam senarai, tambah baharu —"}
-                  </option>
-                  {senaraiGuru.map((nama) => (
-                    <option key={nama} value={nama}>
-                      {nama}
-                    </option>
-                  ))}
-                  <option value="__baharu__">+ Tambah guru baharu</option>
-                </select>
-                {guruMode === "baharu" && (
-                  <input
-                    type="text"
-                    value={guruBaharu}
-                    onChange={(e) => setGuruBaharu(e.target.value)}
-                    placeholder="Masukkan nama guru baharu"
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none ring-brand-500 focus:ring-2"
-                  />
-                )}
-              </div>
+              <span className="font-medium text-ink-2">Nama Guru *</span>
+              {form.kodSekolah.trim() ? (
+                <div className="mt-1 space-y-2">
+                  <select
+                    value={guruMode === "baharu" ? "__baharu__" : form.namaGuru}
+                    onChange={(e) => {
+                      if (e.target.value === "__baharu__") {
+                        setGuruMode("baharu");
+                        setGuruBaharu("");
+                      } else {
+                        setGuruMode("pilih");
+                        update("namaGuru", e.target.value);
+                      }
+                    }}
+                    className={inputCls}
+                  >
+                    <option value="">— Pilih guru —</option>
+                    {senaraiGuru.map((nama) => (
+                      <option key={nama} value={nama}>
+                        {nama}
+                      </option>
+                    ))}
+                    <option value="__baharu__">+ Tambah guru baharu</option>
+                  </select>
+                  {guruMode === "baharu" && (
+                    <input
+                      type="text"
+                      value={guruBaharu}
+                      onChange={(e) => setGuruBaharu(e.target.value)}
+                      placeholder="Masukkan nama guru baharu"
+                      className={inputCls}
+                    />
+                  )}
+                </div>
+              ) : (
+                <p className="mt-1 rounded-xl border border-dashed border-stone px-3 py-2.5 text-muted">
+                  Isi kod sekolah dahulu untuk memaparkan senarai guru.
+                </p>
+              )}
             </div>
 
             <div className="block text-sm sm:col-span-2">
-              <span className="font-medium text-slate-700">Nama Pemerhati *</span>
+              <span className="font-medium text-ink-2">
+                Nama Pentadbir / Pemerhati *
+              </span>
               <div className="mt-1 space-y-2">
                 <select
                   value={
-                    pemerhatiMode === "baharu" ? "__baharu__" : form.namaPemerhati
+                    pentadbirMode === "baharu"
+                      ? "__baharu__"
+                      : form.namaPemerhati
                   }
                   onChange={(e) => {
                     if (e.target.value === "__baharu__") {
-                      setPemerhatiMode("baharu");
-                      setPemerhatiBaharu("");
+                      setPentadbirMode("baharu");
+                      setPentadbirBaharu("");
                     } else {
-                      setPemerhatiMode("pilih");
+                      setPentadbirMode("pilih");
                       update("namaPemerhati", e.target.value);
                     }
                   }}
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none ring-brand-500 focus:ring-2"
+                  className={inputCls}
                 >
-                  <option value="">— Pilih nama anda —</option>
-                  {senaraiPemerhati.map((nama) => (
+                  <option value="">— Pilih pentadbir —</option>
+                  {senaraiPentadbir.map((nama) => (
                     <option key={nama} value={nama}>
                       {nama}
                     </option>
                   ))}
-                  <option value="__baharu__">+ Tambah nama baharu</option>
+                  <option value="__baharu__">+ Tambah pentadbir baharu</option>
                 </select>
-                {pemerhatiMode === "baharu" && (
+                {pentadbirMode === "baharu" && (
                   <input
                     type="text"
-                    value={pemerhatiBaharu}
-                    onChange={(e) => setPemerhatiBaharu(e.target.value)}
-                    placeholder="Masukkan nama pemerhati"
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none ring-brand-500 focus:ring-2"
+                    value={pentadbirBaharu}
+                    onChange={(e) => setPentadbirBaharu(e.target.value)}
+                    placeholder="Masukkan nama pentadbir"
+                    className={inputCls}
                   />
                 )}
               </div>
             </div>
 
             <label className="block text-sm">
-              <span className="font-medium text-slate-700">Sesi Pengisian *</span>
+              <span className="font-medium text-ink-2">Sesi Pengisian *</span>
               <select
                 value={form.sesiPengisian}
                 onChange={(e) => update("sesiPengisian", e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none ring-brand-500 focus:ring-2"
+                className={inputCls}
               >
                 {SESI_PENGISIAN.map((s) => (
                   <option key={s} value={s}>
@@ -333,11 +296,13 @@ export function CerapanForm({ initial }: Props) {
             </label>
 
             <label className="block text-sm">
-              <span className="font-medium text-slate-700">Kalendar Akademik *</span>
+              <span className="font-medium text-ink-2">
+                Kalendar Akademik *
+              </span>
               <select
                 value={form.kalendarAkademik}
                 onChange={(e) => update("kalendarAkademik", e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none ring-brand-500 focus:ring-2"
+                className={inputCls}
               >
                 {KALENDAR_AKADEMIK.map((k) => (
                   <option key={k} value={k}>
@@ -348,13 +313,13 @@ export function CerapanForm({ initial }: Props) {
             </label>
           </div>
 
-          <div className="mt-6 flex justify-end">
+          <div className="mt-8 flex justify-end">
             <button
               type="button"
               onClick={() => validateStep1() && setStep(2)}
-              className="rounded-xl bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-600"
+              className="rounded-full bg-accent px-6 py-2.5 text-sm font-semibold text-white shadow-soft transition hover:opacity-90"
             >
-              Seterusnya: Penskoran
+              Seterusnya: Penskoran →
             </button>
           </div>
         </section>
@@ -363,7 +328,8 @@ export function CerapanForm({ initial }: Props) {
       {step === 2 && (
         <section>
           <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            Tandakan skor mengikut penskoran. Lalai: 4 (terbaik) jika belum dipilih.
+            Tandakan skor mengikut penskoran. Lalai: 4 (terbaik) jika belum
+            dipilih.
           </div>
           <ScoringMatrix
             scores={form.scores}
@@ -378,16 +344,16 @@ export function CerapanForm({ initial }: Props) {
             <button
               type="button"
               onClick={() => setStep(1)}
-              className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-medium"
+              className="rounded-full border border-stone px-5 py-2.5 text-sm font-medium text-ink-2 transition hover:bg-stone-2"
             >
-              Kembali
+              ← Kembali
             </button>
             <button
               type="button"
               onClick={() => setStep(3)}
-              className="rounded-xl bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white"
+              className="rounded-full bg-accent px-6 py-2.5 text-sm font-semibold text-white shadow-soft transition hover:opacity-90"
             >
-              Seterusnya: Ringkasan
+              Seterusnya: Ringkasan →
             </button>
           </div>
         </section>
@@ -395,13 +361,13 @@ export function CerapanForm({ initial }: Props) {
 
       {step === 3 && (
         <section className="space-y-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="rounded-2xl border border-stone bg-paper-card p-6 shadow-soft md:p-8">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <p className="text-sm text-slate-500">Jumlah Skor</p>
-                <p className="text-4xl font-bold text-slate-900">
+                <p className="text-sm text-muted">Jumlah Skor</p>
+                <p className="mt-1 font-serif text-5xl text-ink">
                   {result.jumlahSkor}
-                  <span className="text-lg text-slate-400"> / 100</span>
+                  <span className="font-sans text-xl text-muted"> / 100</span>
                 </p>
               </div>
               <span
@@ -415,23 +381,31 @@ export function CerapanForm({ initial }: Props) {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
-                <tr>
-                  <th className="px-4 py-3">Sub-standard</th>
-                  <th className="px-4 py-3">Skor</th>
-                  <th className="px-4 py-3">%</th>
-                  <th className="px-4 py-3">Wajaran</th>
+          <div className="overflow-x-auto rounded-2xl border border-stone bg-paper-card shadow-soft">
+            <table className="w-full min-w-[480px] text-sm">
+              <thead>
+                <tr className="border-b border-stone bg-stone-2 text-left text-xs uppercase tracking-wider text-muted">
+                  <th className="px-4 py-3 font-semibold">Sub-standard</th>
+                  <th className="px-4 py-3 font-semibold">Skor</th>
+                  <th className="px-4 py-3 font-semibold">%</th>
+                  <th className="px-4 py-3 font-semibold">Wajaran</th>
                 </tr>
               </thead>
               <tbody>
                 {result.subStandards.map((s) => (
-                  <tr key={s.code} className="border-t border-slate-100">
-                    <td className="px-4 py-3 font-medium">{s.code}</td>
-                    <td className="px-4 py-3">{s.weightedScore}</td>
-                    <td className="px-4 py-3">{s.percentage}%</td>
-                    <td className="px-4 py-3 text-slate-500">{s.weight}%</td>
+                  <tr key={s.code} className="border-b border-stone-2 last:border-0">
+                    <td className="px-4 py-3 font-mono font-medium text-ink">
+                      {s.code}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-ink-2">
+                      {s.weightedScore}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-ink-2">
+                      {s.percentage}%
+                    </td>
+                    <td className="px-4 py-3 font-mono text-muted">
+                      {s.weight}%
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -442,17 +416,17 @@ export function CerapanForm({ initial }: Props) {
             <button
               type="button"
               onClick={() => setStep(2)}
-              className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-medium"
+              className="rounded-full border border-stone px-5 py-2.5 text-sm font-medium text-ink-2 transition hover:bg-stone-2"
             >
-              Kembali
+              ← Kembali
             </button>
             <button
               type="button"
               onClick={handleSave}
               disabled={saving}
-              className="rounded-xl bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+              className="rounded-full bg-accent px-6 py-2.5 text-sm font-semibold text-white shadow-soft transition hover:opacity-90 disabled:opacity-60"
             >
-              {saving ? "Menyimpan..." : "Simpan & Lihat Laporan"}
+              {saving ? "Menyimpan…" : "Simpan & Lihat Laporan"}
             </button>
           </div>
         </section>

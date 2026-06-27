@@ -35,7 +35,7 @@ export function LaporanGuru({ record }: Props) {
         <button
           type="button"
           onClick={() => window.print()}
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium"
+          className="inline-flex items-center gap-2 rounded-full border border-stone bg-paper-card px-4 py-2 text-sm font-medium text-ink-2 shadow-soft transition hover:bg-stone-2"
         >
           <Printer className="h-4 w-4" />
           Cetak Laporan
@@ -43,7 +43,7 @@ export function LaporanGuru({ record }: Props) {
         <button
           type="button"
           onClick={handlePdf}
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium"
+          className="inline-flex items-center gap-2 rounded-full border border-stone bg-paper-card px-4 py-2 text-sm font-medium text-ink-2 shadow-soft transition hover:bg-stone-2"
         >
           <Download className="h-4 w-4" />
           Muat Turun PDF
