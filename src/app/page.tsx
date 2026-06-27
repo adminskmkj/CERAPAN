@@ -54,12 +54,6 @@ export default function HomePage() {
           >
             Cerapan Baharu
           </Link>
-          <Link
-            href="/log-masuk"
-            className="inline-flex items-center gap-2 rounded-xl border border-white/30 px-5 py-3 text-sm font-semibold text-white"
-          >
-            Log Masuk
-          </Link>
         </div>
       </section>
 

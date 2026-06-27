@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { BarChart3, ClipboardList, PlusCircle, Users } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { BarChart3, ClipboardList, PlusCircle } from "lucide-react";
 import { listCerapan } from "@/lib/storage";
 import { computeStats } from "@/lib/storage/cerapan-supabase";
 import type { DashboardStats } from "@/lib/storage/cerapan-supabase";
@@ -18,7 +17,6 @@ const TARAF_BAR: Record<Taraf, string> = {
 };
 
 export default function DashboardPage() {
-  const { profile, isCloudMode, isAdmin } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -44,13 +42,7 @@ export default function DashboardPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {profile
-              ? `Selamat datang, ${profile.fullName}`
-              : isCloudMode
-                ? "Sila log masuk"
-                : "Mod demo — simpanan tempatan"}
-          </p>
+          <p className="mt-1 text-sm text-slate-500">Pemantauan cerapan guru</p>
         </div>
         <Link
           href="/cerapan/baharu"
@@ -147,15 +139,7 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {isAdmin && (
-        <Link
-          href="/pentadbir/pengguna"
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium shadow-sm hover:bg-slate-50"
-        >
-          <Users className="h-4 w-4" />
-          Urus Pengguna
-        </Link>
-      )}
+
     </div>
   );
 }

@@ -105,7 +105,7 @@ export async function getCerapanSupabase(
 
 export async function saveCerapanSupabase(
   supabase: SupabaseClient,
-  userId: string,
+  userId: string | null,
   data: Omit<CerapanRecord, "id" | "createdAt" | "updatedAt" | "result"> & {
     id?: string;
   },

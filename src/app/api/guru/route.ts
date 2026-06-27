@@ -1,82 +1,29 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { UserRole } from "@/lib/auth/types";
-import { canManageGuru, canReadGuru } from "@/lib/auth/permissions";
 
 export const runtime = "nodejs";
 
-async function getCallerProfile() {
-  const supabase = await createClient();
-  const admin = createAdminClient();
-  if (!supabase || !admin) return { error: "Supabase tidak dikonfigurasi", status: 503 };
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Tidak log masuk", status: 401 };
-
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("id, role, school_id")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile) return { error: "Profil tidak dijumpai", status: 404 };
-
-  return { admin, user, profile };
-}
-
 export async function GET(request: Request) {
-  const ctx = await getCallerProfile();
-  if ("error" in ctx) {
-    return NextResponse.json({ error: ctx.error }, { status: ctx.status });
-  }
-
-  const role = ctx.profile.role as UserRole;
-  if (!canReadGuru(role)) {
-    return NextResponse.json({ error: "Akses ditolak" }, { status: 403 });
+  const admin = createAdminClient();
+  if (!admin) {
+    return NextResponse.json(
+      { error: "Supabase tidak dikonfigurasi" },
+      { status: 503 }
+    );
   }
 
   const { searchParams } = new URL(request.url);
-  let kodSekolah = searchParams.get("kodSekolah")?.trim().toUpperCase() || "";
+  const kodSekolah = searchParams.get("kodSekolah")?.trim().toUpperCase() || "";
 
-  if (!kodSekolah && role === "school_admin" && ctx.profile.school_id) {
-    const { data: school } = await ctx.admin
-      .from("schools")
-      .select("kod_sekolah")
-      .eq("id", ctx.profile.school_id)
-      .maybeSingle();
-    kodSekolah = school?.kod_sekolah?.toUpperCase() ?? "";
-  }
-
-  if (!kodSekolah && role !== "jpn_admin" && role !== "ppd_admin") {
+  if (!kodSekolah) {
     return NextResponse.json({ error: "kodSekolah diperlukan" }, { status: 400 });
   }
 
-  if (kodSekolah && role === "school_admin" && ctx.profile.school_id) {
-    const { data: school } = await ctx.admin
-      .from("schools")
-      .select("kod_sekolah")
-      .eq("id", ctx.profile.school_id)
-      .maybeSingle();
-
-    if (school?.kod_sekolah && school.kod_sekolah.toUpperCase() !== kodSekolah) {
-      return NextResponse.json({ error: "Akses ditolak untuk sekolah ini" }, { status: 403 });
-    }
-  }
-
-  let query = ctx.admin
+  const { data, error } = await admin
     .from("gurus")
     .select("id, kod_sekolah, nama_sekolah, nama_guru, mata_pelajaran, created_at")
-    .order("kod_sekolah", { ascending: true })
+    .eq("kod_sekolah", kodSekolah)
     .order("nama_guru", { ascending: true });
-
-  if (kodSekolah) {
-    query = query.eq("kod_sekolah", kodSekolah);
-  }
-
-  const { data, error } = await query;
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
@@ -91,22 +38,18 @@ export async function GET(request: Request) {
     createdAt: row.created_at,
   }));
 
-  let mergedNames = fromDb.map((g) => g.namaGuru);
+  const { data: cerapanRows } = await admin
+    .from("cerapan")
+    .select("nama_guru")
+    .eq("kod_sekolah", kodSekolah);
 
-  if (kodSekolah) {
-    const { data: cerapanRows } = await ctx.admin
-      .from("cerapan")
-      .select("nama_guru")
-      .eq("kod_sekolah", kodSekolah);
+  const fromCerapan = [
+    ...new Set((cerapanRows ?? []).map((r) => r.nama_guru.trim()).filter(Boolean)),
+  ];
 
-    const fromCerapan = [
-      ...new Set((cerapanRows ?? []).map((r) => r.nama_guru.trim()).filter(Boolean)),
-    ];
-
-    mergedNames = [...new Set([...mergedNames, ...fromCerapan])].sort((a, b) =>
-      a.localeCompare(b, "ms")
-    );
-  }
+  const mergedNames = [...new Set([...fromDb.map((g) => g.namaGuru), ...fromCerapan])].sort(
+    (a, b) => a.localeCompare(b, "ms")
+  );
 
   return NextResponse.json({
     gurus: fromDb,
@@ -115,14 +58,12 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const ctx = await getCallerProfile();
-  if ("error" in ctx) {
-    return NextResponse.json({ error: ctx.error }, { status: ctx.status });
-  }
-
-  const role = ctx.profile.role as UserRole;
-  if (!canManageGuru(role) && role !== "cerap_officer") {
-    return NextResponse.json({ error: "Akses ditolak" }, { status: 403 });
+  const admin = createAdminClient();
+  if (!admin) {
+    return NextResponse.json(
+      { error: "Supabase tidak dikonfigurasi" },
+      { status: 503 }
+    );
   }
 
   const body = await request.json();
@@ -138,29 +79,15 @@ export async function POST(request: Request) {
     );
   }
 
-  if (role === "school_admin" && ctx.profile.school_id) {
-    const { data: school } = await ctx.admin
-      .from("schools")
-      .select("kod_sekolah")
-      .eq("id", ctx.profile.school_id)
-      .maybeSingle();
+  let schoolId: string | null = null;
+  const { data: school } = await admin
+    .from("schools")
+    .select("id")
+    .eq("kod_sekolah", kodSekolah)
+    .maybeSingle();
+  schoolId = school?.id ?? null;
 
-    if (school?.kod_sekolah && school.kod_sekolah.toUpperCase() !== kodSekolah) {
-      return NextResponse.json({ error: "Akses ditolak untuk sekolah ini" }, { status: 403 });
-    }
-  }
-
-  let schoolId: string | null = ctx.profile.school_id ?? null;
-  if (!schoolId) {
-    const { data: school } = await ctx.admin
-      .from("schools")
-      .select("id")
-      .eq("kod_sekolah", kodSekolah)
-      .maybeSingle();
-    schoolId = school?.id ?? null;
-  }
-
-  const { data, error } = await ctx.admin
+  const { data, error } = await admin
     .from("gurus")
     .upsert(
       {
@@ -169,7 +96,7 @@ export async function POST(request: Request) {
         nama_sekolah: namaSekolah,
         nama_guru: namaGuru,
         mata_pelajaran: mataPelajaran,
-        created_by: ctx.user.id,
+        created_by: null,
       },
       { onConflict: "kod_sekolah,nama_guru" }
     )

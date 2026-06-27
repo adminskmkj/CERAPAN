@@ -1,27 +1,23 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   deleteCerapanSupabase,
   getCerapanSupabase,
 } from "@/lib/storage/cerapan-supabase";
 
+export const runtime = "nodejs";
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const supabase = await createClient();
   const admin = createAdminClient();
-  if (!supabase || !admin) {
-    return NextResponse.json({ error: "Supabase tidak dikonfigurasi" }, { status: 503 });
-  }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Tidak log masuk" }, { status: 401 });
+  if (!admin) {
+    return NextResponse.json(
+      { error: "Supabase tidak dikonfigurasi" },
+      { status: 503 }
+    );
   }
 
   try {
@@ -43,17 +39,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const supabase = await createClient();
   const admin = createAdminClient();
-  if (!supabase || !admin) {
-    return NextResponse.json({ error: "Supabase tidak dikonfigurasi" }, { status: 503 });
-  }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Tidak log masuk" }, { status: 401 });
+  if (!admin) {
+    return NextResponse.json(
+      { error: "Supabase tidak dikonfigurasi" },
+      { status: 503 }
+    );
   }
 
   try {

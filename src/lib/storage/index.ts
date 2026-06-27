@@ -1,4 +1,4 @@
-import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { isCloudEnabled } from "@/lib/supabase/cloud";
 import type { CerapanRecord } from "@/lib/types/cerapan";
 import type { InputValue } from "@/lib/scoring/standard4";
 import * as local from "./cerapan-store";
@@ -9,21 +9,12 @@ export type SaveCerapanInput = Omit<
   "id" | "createdAt" | "updatedAt" | "result"
 > & { id?: string };
 
-async function isLoggedInCloud(): Promise<boolean> {
-  try {
-    const res = await fetch("/api/me");
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
-
-export function useCloudStorage(): boolean {
-  return isSupabaseConfigured;
+export async function useCloudStorage(): Promise<boolean> {
+  return isCloudEnabled();
 }
 
 export async function listCerapan(): Promise<CerapanRecord[]> {
-  if (await isLoggedInCloud()) {
+  if (await isCloudEnabled()) {
     const res = await fetch("/api/cerapan");
     if (res.ok) return res.json();
   }
@@ -31,7 +22,7 @@ export async function listCerapan(): Promise<CerapanRecord[]> {
 }
 
 export async function getCerapan(id: string): Promise<CerapanRecord | null> {
-  if (await isLoggedInCloud()) {
+  if (await isCloudEnabled()) {
     const res = await fetch(`/api/cerapan/${id}`);
     if (res.ok) return res.json();
     if (res.status === 404) return null;
@@ -39,11 +30,8 @@ export async function getCerapan(id: string): Promise<CerapanRecord | null> {
   return local.getCerapan(id);
 }
 
-export async function saveCerapan(
-  data: SaveCerapanInput,
-  _options?: { userId?: string; schoolId?: string | null }
-): Promise<CerapanRecord> {
-  if (await isLoggedInCloud()) {
+export async function saveCerapan(data: SaveCerapanInput): Promise<CerapanRecord> {
+  if (await isCloudEnabled()) {
     const res = await fetch("/api/cerapan", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -57,7 +45,7 @@ export async function saveCerapan(
 }
 
 export async function deleteCerapan(id: string): Promise<void> {
-  if (await isLoggedInCloud()) {
+  if (await isCloudEnabled()) {
     const res = await fetch(`/api/cerapan/${id}`, { method: "DELETE" });
     if (!res.ok) {
       const json = await res.json();

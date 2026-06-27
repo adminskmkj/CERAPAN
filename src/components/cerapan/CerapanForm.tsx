@@ -11,9 +11,9 @@ import {
   getTarafColor,
   type InputValue,
 } from "@/lib/scoring/standard4";
-import { useAuth } from "@/contexts/AuthContext";
 import { ensureScores, saveCerapan } from "@/lib/storage";
 import { getSenaraiGuru, tambahGuru } from "@/lib/storage/guru-store";
+import { getSenaraiPemerhati, tambahPemerhati } from "@/lib/storage/pentadbir-store";
 import { cn } from "@/lib/utils";
 
 interface FormState {
@@ -48,7 +48,6 @@ interface Props {
 
 export function CerapanForm({ initial }: Props) {
   const router = useRouter();
-  const { user, profile } = useAuth();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormState>({ ...emptyForm(), ...initial });
   const [error, setError] = useState("");
@@ -58,14 +57,17 @@ export function CerapanForm({ initial }: Props) {
     initial?.namaGuru ? "pilih" : "pilih"
   );
   const [guruBaharu, setGuruBaharu] = useState("");
+  const [senaraiPemerhati, setSenaraiPemerhati] = useState<string[]>([]);
+  const [pemerhatiMode, setPemerhatiMode] = useState<"pilih" | "baharu">(
+    initial?.namaPemerhati ? "pilih" : "pilih"
+  );
+  const [pemerhatiBaharu, setPemerhatiBaharu] = useState("");
 
   const result = useMemo(() => calculateCerapan(form.scores), [form.scores]);
 
   useEffect(() => {
-    if (profile?.fullName && !form.namaPemerhati) {
-      setForm((f) => ({ ...f, namaPemerhati: profile.fullName }));
-    }
-  }, [profile?.fullName, form.namaPemerhati]);
+    getSenaraiPemerhati().then(setSenaraiPemerhati);
+  }, []);
 
   useEffect(() => {
     const kod = form.kodSekolah.trim();
@@ -82,6 +84,12 @@ export function CerapanForm({ initial }: Props) {
 
   function getNamaGuruAkhir() {
     return guruMode === "baharu" ? guruBaharu.trim() : form.namaGuru.trim();
+  }
+
+  function getNamaPemerhatiAkhir() {
+    return pemerhatiMode === "baharu"
+      ? pemerhatiBaharu.trim()
+      : form.namaPemerhati.trim();
   }
 
   function validateStep1() {
@@ -102,6 +110,10 @@ export function CerapanForm({ initial }: Props) {
       setError("Sila pilih atau masukkan nama guru.");
       return false;
     }
+    if (!getNamaPemerhatiAkhir()) {
+      setError("Sila pilih atau masukkan nama pemerhati.");
+      return false;
+    }
     setError("");
     return true;
   }
@@ -111,29 +123,23 @@ export function CerapanForm({ initial }: Props) {
     setError("");
     try {
       const namaGuru = getNamaGuruAkhir();
-      await tambahGuru(form.kodSekolah, namaGuru, {
-        namaSekolah: form.namaSekolah.trim(),
-        mataPelajaran: form.mataPelajaran.trim(),
-      });
+      const namaPemerhati = getNamaPemerhatiAkhir();
+      tambahGuru(form.kodSekolah, namaGuru);
+      tambahPemerhati(namaPemerhati);
 
-      const record = await saveCerapan(
-        {
-          id: initial?.id,
-          kodSekolah: form.kodSekolah.trim(),
-          namaSekolah: form.namaSekolah.trim(),
-          namaGuru,
-          mataPelajaran: form.mataPelajaran.trim(),
-          kelas: form.kelas.trim(),
-          sesiPengisian: form.sesiPengisian,
-          tarikh: form.tarikh,
-          kalendarAkademik: form.kalendarAkademik,
-          namaPemerhati: form.namaPemerhati.trim(),
-          scores: ensureScores(form.scores),
-        },
-        user
-          ? { userId: user.id, schoolId: profile?.schoolId ?? null }
-          : undefined
-      );
+      const record = await saveCerapan({
+        id: initial?.id,
+        kodSekolah: form.kodSekolah.trim(),
+        namaSekolah: form.namaSekolah.trim(),
+        namaGuru,
+        mataPelajaran: form.mataPelajaran.trim(),
+        kelas: form.kelas.trim(),
+        sesiPengisian: form.sesiPengisian,
+        tarikh: form.tarikh,
+        kalendarAkademik: form.kalendarAkademik,
+        namaPemerhati,
+        scores: ensureScores(form.scores),
+      });
       router.push(`/cerapan/${record.id}/laporan`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal menyimpan rekod");
@@ -155,7 +161,7 @@ export function CerapanForm({ initial }: Props) {
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-900">Maklumat Cerapan</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Isi maklumat sekolah dan guru yang dicemerap.
+            Isi maklumat sekolah, guru, dan pemerhati yang mencerap.
           </p>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             {(
@@ -225,29 +231,43 @@ export function CerapanForm({ initial }: Props) {
               )}
             </div>
 
-            <label className="block text-sm">
-              <span className="font-medium text-slate-700">Nama Pemerhati</span>
-              <input
-                type="text"
-                value={form.namaPemerhati}
-                readOnly={Boolean(profile?.fullName)}
-                onChange={(e) => update("namaPemerhati", e.target.value)}
-                className={cn(
-                  "mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none ring-brand-500 focus:ring-2",
-                  profile?.fullName && "bg-slate-50 text-slate-700"
+            <div className="block text-sm sm:col-span-2">
+              <span className="font-medium text-slate-700">Nama Pemerhati *</span>
+              <div className="mt-1 space-y-2">
+                <select
+                  value={
+                    pemerhatiMode === "baharu" ? "__baharu__" : form.namaPemerhati
+                  }
+                  onChange={(e) => {
+                    if (e.target.value === "__baharu__") {
+                      setPemerhatiMode("baharu");
+                      setPemerhatiBaharu("");
+                    } else {
+                      setPemerhatiMode("pilih");
+                      update("namaPemerhati", e.target.value);
+                    }
+                  }}
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none ring-brand-500 focus:ring-2"
+                >
+                  <option value="">— Pilih nama anda —</option>
+                  {senaraiPemerhati.map((nama) => (
+                    <option key={nama} value={nama}>
+                      {nama}
+                    </option>
+                  ))}
+                  <option value="__baharu__">+ Tambah nama baharu</option>
+                </select>
+                {pemerhatiMode === "baharu" && (
+                  <input
+                    type="text"
+                    value={pemerhatiBaharu}
+                    onChange={(e) => setPemerhatiBaharu(e.target.value)}
+                    placeholder="Masukkan nama pemerhati"
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none ring-brand-500 focus:ring-2"
+                  />
                 )}
-                title={
-                  profile?.fullName
-                    ? "Diisi automatik mengikut pentadbir yang log masuk"
-                    : undefined
-                }
-              />
-              {profile?.fullName && (
-                <span className="mt-1 block text-xs text-slate-500">
-                  Diisi automatik mengikut pentadbir yang log masuk
-                </span>
-              )}
-            </label>
+              </div>
+            </div>
 
             <label className="block text-sm">
               <span className="font-medium text-slate-700">Sesi Pengisian *</span>

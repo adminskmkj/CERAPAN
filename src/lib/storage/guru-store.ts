@@ -1,3 +1,4 @@
+import { isCloudEnabled } from "@/lib/supabase/cloud";
 import { listCerapan } from "@/lib/storage";
 
 const KEY = "senarai_guru";
@@ -16,15 +17,6 @@ function writeMap(map: Record<string, string[]>) {
   localStorage.setItem(KEY, JSON.stringify(map));
 }
 
-async function isLoggedInCloud(): Promise<boolean> {
-  try {
-    const res = await fetch("/api/me");
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
-
 export interface GuruRow {
   id: string;
   kodSekolah: string;
@@ -38,8 +30,7 @@ export async function getSenaraiGuru(kodSekolah: string): Promise<string[]> {
   const kod = kodSekolah.trim().toUpperCase();
   if (!kod) return [];
 
-  const cloud = await isLoggedInCloud();
-  if (cloud) {
+  if (await isCloudEnabled()) {
     try {
       const res = await fetch(`/api/guru?kodSekolah=${encodeURIComponent(kod)}`);
       if (res.ok) {
@@ -64,7 +55,7 @@ export async function getSenaraiGuru(kodSekolah: string): Promise<string[]> {
 }
 
 export async function listGuruRows(kodSekolah?: string): Promise<GuruRow[]> {
-  if (!(await isLoggedInCloud())) return [];
+  if (!(await isCloudEnabled())) return [];
 
   const qs = kodSekolah
     ? `?kodSekolah=${encodeURIComponent(kodSekolah.trim().toUpperCase())}`
@@ -84,8 +75,7 @@ export async function tambahGuru(
   const nama = namaGuru.trim();
   if (!kod || !nama) return;
 
-  const cloud = await isLoggedInCloud();
-  if (cloud) {
+  if (await isCloudEnabled()) {
     await fetch("/api/guru", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

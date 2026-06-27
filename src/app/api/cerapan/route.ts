@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   listCerapanSupabase,
@@ -7,18 +6,15 @@ import {
 } from "@/lib/storage/cerapan-supabase";
 import type { InputValue } from "@/lib/scoring/standard4";
 
-export async function GET() {
-  const supabase = await createClient();
-  const admin = createAdminClient();
-  if (!supabase || !admin) {
-    return NextResponse.json({ error: "Supabase tidak dikonfigurasi" }, { status: 503 });
-  }
+export const runtime = "nodejs";
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Tidak log masuk" }, { status: 401 });
+export async function GET() {
+  const admin = createAdminClient();
+  if (!admin) {
+    return NextResponse.json(
+      { error: "Supabase tidak dikonfigurasi" },
+      { status: 503 }
+    );
   }
 
   try {
@@ -33,30 +29,20 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
   const admin = createAdminClient();
-  if (!supabase || !admin) {
-    return NextResponse.json({ error: "Supabase tidak dikonfigurasi" }, { status: 503 });
-  }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Tidak log masuk" }, { status: 401 });
+  if (!admin) {
+    return NextResponse.json(
+      { error: "Supabase tidak dikonfigurasi" },
+      { status: 503 }
+    );
   }
 
   const body = await request.json();
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("school_id")
-    .eq("id", user.id)
-    .maybeSingle();
 
   try {
     const record = await saveCerapanSupabase(
       admin,
-      user.id,
+      null,
       {
         id: body.id,
         kodSekolah: body.kodSekolah,
@@ -70,7 +56,7 @@ export async function POST(request: Request) {
         namaPemerhati: body.namaPemerhati,
         scores: body.scores as Record<string, InputValue>,
       },
-      profile?.school_id ?? null
+      null
     );
     return NextResponse.json(record);
   } catch (e) {
