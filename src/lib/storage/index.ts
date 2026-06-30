@@ -60,6 +60,7 @@ export async function searchCerapan(query: {
   namaGuru?: string;
   kodSekolah?: string;
   taraf?: string;
+  sesiPengisian?: string;
 }): Promise<CerapanRecord[]> {
   const all = await listCerapan();
   return remote.searchCerapanRecords(all, query);

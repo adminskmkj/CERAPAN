@@ -1,7 +1,16 @@
 import { isCloudEnabled } from "@/lib/supabase/cloud";
 import { listCerapan } from "@/lib/storage";
+import {
+  type SesiGuru,
+  getDefaultGuruLabels,
+} from "@/lib/data/senarai-smkjs";
 
 const KEY = "senarai_guru";
+
+export interface GuruOption {
+  nama: string;
+  label: string;
+}
 
 function readMap(): Record<string, string[]> {
   if (typeof window === "undefined") return {};
@@ -17,59 +26,74 @@ function writeMap(map: Record<string, string[]>) {
   localStorage.setItem(KEY, JSON.stringify(map));
 }
 
-export interface GuruRow {
-  id: string;
-  kodSekolah: string;
-  namaSekolah: string | null;
-  namaGuru: string;
-  mataPelajaran: string | null;
-  createdAt: string;
-}
-
-export async function getSenaraiGuru(kodSekolah: string): Promise<string[]> {
+export async function getSenaraiGuruOptions(
+  kodSekolah: string,
+  sesi: SesiGuru
+): Promise<GuruOption[]> {
   const kod = kodSekolah.trim().toUpperCase();
-  if (!kod) return [];
+  const byNama = new Map<string, GuruOption>();
 
-  let fromApi: string[] = [];
-  if (await isCloudEnabled()) {
+  for (const label of getDefaultGuruLabels(sesi)) {
+    const nama = label.split(" — ")[0];
+    byNama.set(nama, { nama, label });
+  }
+
+  if (kod && (await isCloudEnabled())) {
     try {
-      const res = await fetch(`/api/guru?kodSekolah=${encodeURIComponent(kod)}`);
+      const qs = new URLSearchParams({
+        kodSekolah: kod,
+        sesi,
+      });
+      const res = await fetch(`/api/guru?${qs}`);
       if (res.ok) {
         const json = await res.json();
-        fromApi = json.namaGuru ?? [];
+        for (const item of json.options ?? []) {
+          if (item?.nama) {
+            byNama.set(item.nama, {
+              nama: item.nama,
+              label: item.label ?? item.nama,
+            });
+          }
+        }
+        for (const label of json.namaGuru ?? []) {
+          if (typeof label === "string") {
+            const nama = label.split(" — ")[0];
+            if (!byNama.has(nama)) byNama.set(nama, { nama, label });
+          }
+        }
       }
     } catch {
       /* gabung dengan sumber tempatan di bawah */
     }
   }
 
-  const fromStore = readMap()[kod] ?? [];
-  let fromHistory: string[] = [];
+  const fromStore = kod ? (readMap()[kod] ?? []) : [];
+  for (const nama of fromStore) {
+    if (!byNama.has(nama)) byNama.set(nama, { nama, label: nama });
+  }
+
   try {
     const records = await listCerapan();
-    fromHistory = records
-      .filter((r) => r.kodSekolah.toUpperCase() === kod)
-      .map((r) => r.namaGuru.trim())
-      .filter(Boolean);
+    for (const r of records) {
+      if (kod && r.kodSekolah.toUpperCase() !== kod) continue;
+      const nama = r.namaGuru.trim();
+      if (nama && !byNama.has(nama)) byNama.set(nama, { nama, label: nama });
+    }
   } catch {
     /* abaikan */
   }
 
-  return [...new Set([...fromApi, ...fromStore, ...fromHistory])].sort((a, b) =>
-    a.localeCompare(b, "ms")
+  return [...byNama.values()].sort((a, b) =>
+    a.label.localeCompare(b.label, "ms")
   );
 }
 
-export async function listGuruRows(kodSekolah?: string): Promise<GuruRow[]> {
-  if (!(await isCloudEnabled())) return [];
-
-  const qs = kodSekolah
-    ? `?kodSekolah=${encodeURIComponent(kodSekolah.trim().toUpperCase())}`
-    : "";
-  const res = await fetch(`/api/guru${qs}`);
-  if (!res.ok) return [];
-  const json = await res.json();
-  return json.gurus ?? [];
+export async function getSenaraiGuru(
+  kodSekolah: string,
+  sesi: SesiGuru = "PAGI"
+): Promise<string[]> {
+  const options = await getSenaraiGuruOptions(kodSekolah, sesi);
+  return options.map((o) => o.label);
 }
 
 export async function tambahGuru(
@@ -101,13 +125,4 @@ export async function tambahGuru(
     map[kod] = [...list, nama].sort((a, b) => a.localeCompare(b, "ms"));
     writeMap(map);
   }
-}
-
-export async function padamGuru(id: string): Promise<{ error?: string }> {
-  const res = await fetch(`/api/guru/${id}`, { method: "DELETE" });
-  if (!res.ok) {
-    const json = await res.json();
-    return { error: json.error ?? "Gagal memadam" };
-  }
-  return {};
 }

@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
+import { isKendiri, isKetuaPanitiaCerapan } from "@/lib/cerapan/jenis";
+import { KOD_SEKOLAH, NAMA_SEKOLAH } from "@/lib/data/sekolah";
+import { requireCerapanWriter } from "@/lib/auth/require-cerapan";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
+  findDuplicateCerapan,
+  getCerapanSupabase,
   listCerapanSupabase,
   saveCerapanSupabase,
 } from "@/lib/storage/cerapan-supabase";
@@ -29,6 +34,14 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const body = await request.json();
+  const sesiPengisian = String(body.sesiPengisian ?? "");
+
+  let userId: string | null = null;
+  let panitiaKp: string | null = body.panitiaKp
+    ? String(body.panitiaKp).trim()
+    : null;
+
   const admin = createAdminClient();
   if (!admin) {
     return NextResponse.json(
@@ -37,23 +50,70 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = await request.json();
+  const existingId = body.id ? String(body.id) : undefined;
+  let existing = null;
+  if (existingId) {
+    existing = await getCerapanSupabase(admin, existingId);
+    if (!existing) {
+      return NextResponse.json({ error: "Rekod tidak dijumpai" }, { status: 404 });
+    }
+  }
+
+  const draft = {
+    namaGuru: String(body.namaGuru ?? ""),
+    mataPelajaran: String(body.mataPelajaran ?? ""),
+    panitiaKp: panitiaKp ?? undefined,
+  };
+
+  if (!isKendiri(sesiPengisian)) {
+    const auth = await requireCerapanWriter(sesiPengisian, existing, draft);
+    if (auth.error) return auth.error;
+    userId = auth.session.user.id;
+    if (isKetuaPanitiaCerapan(sesiPengisian)) {
+      panitiaKp = auth.session.panitia?.trim() ?? panitiaKp;
+    }
+  }
+
+  const existingList = await listCerapanSupabase(admin);
+  const duplicate = findDuplicateCerapan(
+    existingList,
+    body.namaGuru,
+    sesiPengisian,
+    body.id,
+    panitiaKp
+  );
+  if (duplicate) {
+    const extra = isKetuaPanitiaCerapan(sesiPengisian) && panitiaKp
+      ? ` (panitia ${panitiaKp})`
+      : "";
+    return NextResponse.json(
+      {
+        error: `Rekod ${sesiPengisian} untuk ${body.namaGuru}${extra} sudah wujud.`,
+      },
+      { status: 409 }
+    );
+  }
 
   try {
     const record = await saveCerapanSupabase(
       admin,
-      null,
+      userId,
       {
         id: body.id,
-        kodSekolah: body.kodSekolah,
-        namaSekolah: body.namaSekolah,
+        kodSekolah: KOD_SEKOLAH,
+        namaSekolah: NAMA_SEKOLAH,
         namaGuru: body.namaGuru,
         mataPelajaran: body.mataPelajaran,
         kelas: body.kelas,
-        sesiPengisian: body.sesiPengisian,
+        sesiPengisian,
         tarikh: body.tarikh,
         kalendarAkademik: body.kalendarAkademik,
         namaPemerhati: body.namaPemerhati,
+        panitiaKp: panitiaKp ?? undefined,
+        dapatanPencerap: body.dapatanPencerap,
+        langkahPenambahbaikan: body.langkahPenambahbaikan,
+        ulasanPencerapan: body.ulasanPencerapan,
+        tarikhTindakLanjut: body.tarikhTindakLanjut,
         scores: body.scores as Record<string, InputValue>,
       },
       null

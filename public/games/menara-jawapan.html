@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Menara Jawapan — Game PdP 2 Kumpulan</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Press+Start+2P&display=swap');
+
+:root {
+  --color-bg: #0a0a0a;
+  --color-red: #ef4444;
+  --color-red-glow: rgba(239,68,68,0.6);
+  --color-blue: #3b82f6;
+  --color-blue-glow: rgba(59,130,246,0.6);
+  --color-success: #22c55e;
+  --color-danger: #dc3545;
+  --color-gold: #fbbf24;
+  --font-base: 'Inter', system-ui, sans-serif;
+  --font-accent: 'Press Start 2P', cursive;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+html, body { margin: 0; padding: 0; height: 100%; font-family: var(--font-base); touch-action: manipulation; overflow: hidden; background: var(--color-bg); color: #fff; }
+
+/* ===== SCREENS ===== */
+.screen { position: absolute; inset: 0; display: none; flex-direction: column; }
+.screen.active { display: flex; }
+
+/* ===== GLASS CARD ===== */
+.card { background: rgba(255,255,255,0.05); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; box-shadow: 0 4px 30px rgba(0,0,0,0.5); }
+
+/* ===== HEADER ===== */
+header { text-align: center; padding: 14px 12px 8px; }
+header h1 { margin: 0; font-family: var(--font-accent); font-size: clamp(16px, 3.4vw, 28px); background: linear-gradient(90deg, var(--color-blue), var(--color-red)); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 12px rgba(255,255,255,0.25)); letter-spacing: 1px; }
+
+/* ===== SETUP ===== */
+#setup { align-items: center; justify-content: center; padding: 16px; overflow-y: auto; }
+#setup .card { padding: 22px; max-width: 640px; width: 100%; margin: auto; }
+#setup h2 { margin: 0 0 4px; font-family: var(--font-accent); font-size: 16px; text-align: center; }
+#setup .sub { margin: 0 0 18px; text-align: center; opacity: 0.65; font-size: 13px; }
+.row { display: flex; gap: 12px; margin-bottom: 12px; }
+.row > div { flex: 1; }
+label { display: block; font-size: 11px; opacity: 0.75; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+input, select, textarea { width: 100%; padding: 11px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); color: #fff; font-size: 15px; font-family: inherit; }
+input:focus, textarea:focus, select:focus { outline: none; border-color: var(--color-gold); box-shadow: 0 0 0 2px rgba(251,191,36,0.25); }
+textarea { min-height: 120px; resize: vertical; font-family: monospace; font-size: 12px; }
+.btn { padding: 13px 22px; border-radius: 10px; border: none; font-size: 14px; font-weight: 700; font-family: var(--font-accent); cursor: pointer; color: #0a0a0a; transition: transform 0.1s ease; letter-spacing: 0.5px; }
+.btn:active { transform: scale(0.96); }
+.btn-primary { background: linear-gradient(90deg, var(--color-gold), #f59e0b); box-shadow: 0 0 20px rgba(251,191,36,0.4); }
+.hint { font-size: 11px; opacity: 0.55; margin-top: 4px; line-height: 1.4; }
+.hidden { display: none !important; }
+
+/* ===== GAME LAYOUT ===== */
+#game { padding: 6px 10px 10px; gap: 8px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.team-chip { display: flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 24px; font-weight: 700; font-size: 14px; border: 2px solid transparent; }
+.team-chip .score { font-family: var(--font-accent); font-size: 15px; }
+.team-chip .streak { font-size: 12px; opacity: 0.9; }
+.team-A { background: rgba(239,68,68,0.18); border-color: rgba(239,68,68,0.5); color: #fca5a5; box-shadow: 0 0 18px rgba(239,68,68,0.15); }
+.team-B { background: rgba(59,130,246,0.18); border-color: rgba(59,130,246,0.5); color: #93c5fd; box-shadow: 0 0 18px rgba(59,130,246,0.15); }
+.team-chip .streak.fire { color: var(--color-gold); text-shadow: 0 0 8px rgba(251,191,36,0.7); }
+#centerMeta { text-align: center; font-size: 12px; opacity: 0.7; }
+#centerMeta button { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 4px 10px; font-size: 11px; font-family: var(--font-accent); margin-top: 4px; }
+
+/* ===== TOWERS ===== */
+.towers { position: relative; display: flex; justify-content: space-around; align-items: flex-end; height: 26vh; min-height: 150px; padding: 0 6px; background: linear-gradient(180deg, rgba(15,23,42,0.4), rgba(30,27,75,0.4)); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; overflow: hidden; }
+.tower-wrap { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; width: 30%; max-width: 200px; gap: 3px; }
+.flag { font-size: 22px; margin-bottom: 2px; filter: drop-shadow(0 0 6px rgba(255,255,255,0.3)); }
+.tower { display: flex; flex-direction: column-reverse; justify-content: flex-start; width: 100%; gap: 2px; overflow: hidden; }
+.block { width: 100%; border-radius: 6px 6px 2px 2px; animation: drop 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+.block.A { background: linear-gradient(135deg, #ef4444, #991b1b); box-shadow: 0 0 10px var(--color-red-glow), inset 0 1px 0 rgba(255,255,255,0.2); }
+.block.B { background: linear-gradient(135deg, #3b82f6, #1e3a8a); box-shadow: 0 0 10px var(--color-blue-glow), inset 0 1px 0 rgba(255,255,255,0.2); }
+.block.gold { background: linear-gradient(135deg, #fbbf24, #d97706); box-shadow: 0 0 16px rgba(251,191,36,0.8); }
+.block.gold::after { content: "★"; float: right; padding-right: 8px; color: rgba(0,0,0,0.5); }
+@keyframes drop { 0% { transform: translateY(-70px) scale(1.1); opacity: 0; } 60% { transform: translateY(4px) scale(0.97); } 100% { transform: translateY(0) scale(1); opacity: 1; } }
+.tower-label { font-size: 12px; font-weight: 700; opacity: 0.85; margin-top: 4px; }
+.target-line { position: absolute; left: 8px; right: 8px; top: 18px; border-top: 2px dashed rgba(251,191,36,0.5); pointer-events: none; }
+.target-line span { position: absolute; right: 0; top: -16px; font-size: 10px; background: rgba(0,0,0,0.5); padding: 1px 6px; border-radius: 5px; color: var(--color-gold); }
+
+/* ===== BOARDS ===== */
+.boards { flex: 1; display: flex; gap: 10px; min-height: 0; }
+.board { flex: 1; display: flex; flex-direction: column; padding: 14px; min-width: 0; }
+.board.A { border: 2px solid rgba(239,68,68,0.35); box-shadow: 0 0 30px rgba(239,68,68,0.12); background: linear-gradient(180deg, rgba(127,29,29,0.25), rgba(15,23,42,0.5)); }
+.board.B { border: 2px solid rgba(59,130,246,0.35); box-shadow: 0 0 30px rgba(59,130,246,0.12); background: linear-gradient(180deg, rgba(30,58,138,0.25), rgba(15,23,42,0.5)); }
+.board-head { display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 8px; }
+.board-title { font-family: var(--font-accent); font-size: 13px; }
+.board.A .board-title { color: #fca5a5; text-shadow: 0 0 10px rgba(239,68,68,0.4); }
+.board.B .board-title { color: #93c5fd; text-shadow: 0 0 10px rgba(59,130,246,0.4); }
+.timerbar { width: 60px; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.1); overflow: hidden; }
+.timerbar > div { height: 100%; background: var(--color-gold); transition: width 0.2s linear; }
+.timerbar.low > div { background: var(--color-danger); }
+.qtext { min-height: 52px; display: flex; align-items: center; justify-content: center; text-align: center; font-size: clamp(15px, 2.2vw, 20px); font-weight: 700; line-height: 1.3; margin: 6px 0 10px; }
+.choices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; flex: 1; }
+.choice { padding: 12px 10px; border-radius: 12px; border: 2px solid; font-size: clamp(13px, 1.8vw, 16px); font-weight: 700; color: #fff; cursor: pointer; transition: all 0.15s ease; min-height: 54px; display: flex; align-items: center; justify-content: center; text-align: center; }
+.choice:active { transform: scale(0.95); }
+.board.A .choice { background: rgba(127,29,29,0.3); border-color: rgba(239,68,68,0.25); color: #fecaca; }
+.board.B .choice { background: rgba(30,58,138,0.3); border-color: rgba(59,130,246,0.25); color: #bfdbfe; }
+.choice.correct { background: linear-gradient(135deg, #22c55e, #15803d) !important; border-color: #22c55e !important; color: #fff !important; box-shadow: 0 0 20px rgba(34,197,94,0.6); animation: pop 0.35s ease; }
+.choice.wrong { background: linear-gradient(135deg, #dc3545, #7f1d1d) !important; border-color: #dc3545 !important; color: #fff !important; box-shadow: 0 0 20px rgba(220,53,69,0.6); animation: shake 0.35s ease; }
+.choice.dim { opacity: 0.3; transform: scale(0.96); }
+.choice.locked { pointer-events: none; }
+@keyframes pop { 0%{transform:scale(1);}50%{transform:scale(1.08);}100%{transform:scale(1);} }
+@keyframes shake { 0%,100%{transform:translateX(0);}25%{transform:translateX(-5px);}75%{transform:translateX(5px);} }
+
+/* ===== WIN ===== */
+#win { align-items: center; justify-content: center; text-align: center; gap: 14px; }
+#win h1 { font-family: var(--font-accent); font-size: clamp(22px, 5vw, 40px); margin: 0; animation: pop 0.6s; }
+#win .stats { font-size: 16px; opacity: 0.9; line-height: 1.7; }
+.confetti { position: fixed; top: -10px; width: 9px; height: 14px; pointer-events: none; animation: fall linear forwards; z-index: 999; }
+@keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
+
+@media (max-width: 640px) {
+  .boards { flex-direction: column; }
+  .choices { grid-template-columns: 1fr 1fr; }
+  .towers { height: 20vh; min-height: 120px; }
+}
+</style>
+</head>
+<body>
+
+<header><h1>🗼 MENARA JAWAPAN</h1></header>
+
+<!-- ============ SETUP ============ -->
+<div id="setup" class="screen active">
+  <div class="card">
+    <h2>⚙ TETAPAN</h2>
+    <p class="sub">2 kumpulan · setiap kumpulan ada soalan + ABCD sendiri · jawapan betul = blok menara naik · streak 3 = blok emas (double)</p>
+
+    <div class="row">
+      <div><label>Kumpulan A</label><input id="nameA" value="Merah" maxlength="14"></div>
+      <div><label>Kumpulan B</label><input id="nameB" value="Biru" maxlength="14"></div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Sasaran blok menang</label>
+        <select id="target">
+          <option value="5">5 (cepat)</option>
+          <option value="8" selected>8 (seimbang)</option>
+          <option value="12">12 (panjang)</option>
+        </select>
+      </div>
+      <div>
+        <label>Masa per soalan (saat)</label>
+        <select id="timer">
+          <option value="0">Tanpa masa</option>
+          <option value="10">10</option>
+          <option value="15" selected>15</option>
+          <option value="20">20</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Set soalan</label>
+        <select id="qset">
+          <option value="math">Matematik</option>
+          <option value="sains">Sains</option>
+          <option value="bahasa">Bahasa</option>
+          <option value="custom">Custom (isi bawah)</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="customWrap" class="hidden">
+      <label>Soalan custom — satu baris = satu soalan</label>
+      <textarea id="customQ" placeholder="Format: Soalan | A | B | C | D | 0
+(0=A, 1=B, 2=C, 3=D)
+
+Contoh:
+7 + 5 = ? | 10 | 12 | 11 | 13 | 1
+Ibu kota Malaysia? | Johor | Kuala Lumpur | Ipoh | Kuantan | 1"></textarea>
+      <div class="hint">Pastikan ada sekurang-kurangnya 4 soalan.</div>
+    </div>
+
+    <div style="margin-top: 16px;">
+      <button class="btn btn-primary" style="width: 100%;" id="startBtn">▶ MULA</button>
+    </div>
+    <div class="hint" style="text-align:center; margin-top: 10px;">Tip: dua kumpulan jawab serentak di papan masing-masing. Soalan berbeza antara kumpulan.</div>
+  </div>
+</div>
+
+<!-- ============ GAME ============ -->
+<div id="game" class="screen">
+  <div class="topbar">
+    <div class="team-chip team-A"><span id="labelA">Merah</span><span class="score" id="scoreA">0</span><span class="streak" id="streakA"></span></div>
+    <div id="centerMeta">
+      <div id="roundInfo">Sasaran: 8</div>
+      <button id="quitBtn">TAMAT</button>
+    </div>
+    <div class="team-chip team-B"><span id="labelB">Biru</span><span class="score" id="scoreB">0</span><span class="streak" id="streakB"></span></div>
+  </div>
+
+  <div class="towers">
+    <div class="target-line"><span>SASARAN</span></div>
+    <div class="tower-wrap">
+      <div class="flag">🚩</div>
+      <div class="tower" id="towerA"></div>
+      <div class="tower-label" id="tlA">Merah</div>
+    </div>
+    <div class="tower-wrap">
+      <div class="flag">🚩</div>
+      <div class="tower" id="towerB"></div>
+      <div class="tower-label" id="tlB">Biru</div>
+    </div>
+  </div>
+
+  <div class="boards">
+    <div class="board A card" id="boardA">
+      <div class="board-head">
+        <div class="board-title" id="btA">MERAH</div>
+        <div class="timerbar" id="tbarA"><div></div></div>
+      </div>
+      <div class="qtext" id="qA">Soalan…</div>
+      <div class="choices" id="cA"></div>
+    </div>
+    <div class="board B card" id="boardB">
+      <div class="board-head">
+        <div class="board-title" id="btB">BIRU</div>
+        <div class="timerbar" id="tbarB"><div></div></div>
+      </div>
+      <div class="qtext" id="qB">Soalan…</div>
+      <div class="choices" id="cB"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ WIN ============ -->
+<div id="win" class="screen">
+  <h1 id="winTitle">🎉 MENANG!</h1>
+  <div class="stats" id="winStats"></div>
+  <button class="btn btn-primary" id="replayBtn">↻ MAIN LAGI</button>
+</div>
+
+<script>
+// ===== QUESTION BANKS =====
+const BANKS = {
+  math: [
+    ["7 + 5 = ?", "10", "12", "11", "13", 1],
+    ["9 × 3 = ?", "27", "21", "24", "30", 0],
+    ["56 ÷ 8 = ?", "6", "7", "8", "9", 1],
+    ["15 - 8 = ?", "6", "7", "8", "9", 1],
+    ["100 - 37 = ?", "63", "73", "67", "53", 0],
+    ["6 × 7 = ?", "42", "36", "48", "49", 0],
+    ["144 ÷ 12 = ?", "11", "12", "13", "14", 1],
+    ["0.5 + 0.25 = ?", "0.7", "0.75", "0.8", "0.30", 1],
+    ["25% daripada 80 = ?", "15", "20", "25", "30", 1],
+    ["1/2 = ?/4", "1", "2", "3", "4", 1],
+    ["9 + 6 = ?", "14", "15", "16", "13", 1],
+    ["11 × 4 = ?", "44", "48", "40", "42", 0],
+  ],
+  sains: [
+    ["Planet terdekat dengan Matahari?", "Marikh", "Utarid", "Zuhrah", "Bumi", 1],
+    ["Tumbuhan buat makanan melalui…", "Respirasi", "Fotosintesis", "Transpirasi", "Pencernaan", 1],
+    ["Air mendidih pada suhu…", "50°C", "75°C", "100°C", "120°C", 2],
+    ["Organ yang mengepam darah?", "Hati", "Peparu", "Buah pinggang", "Otak", 0],
+    ["Gas yang tumbuhan perlukan untuk fotosintesis?", "Oksigen", "Karbondioksida", "Nitrogen", "Hidrogen", 1],
+    ["Benda yang boleh konduksi elektrik?", "Plastik", "Kayu", "Tembaga", "Kaca", 2],
+    ["Fungsi utama akar tumbuhan?", "Buat makanan", "Serap air", "Simpan makanan", "Pernafasan", 1],
+    ["Sumber tenaga boleh diperbaharui?", "Arang batu", "Petroleum", "Solar", "Gas asli", 2],
+    ["Haiwan berdarah sejuk?", "Kucing", "Ular", "Lembu", "Anjing", 1],
+    ["Satu hari = … jam", "12", "24", "36", "48", 1],
+    ["Bulan kelilingi…", "Matahari", "Bumi", "Marikh", "Zuhrah", 1],
+    ["Air terdiri daripada…", "O & H", "C & O", "N & H", "C & H", 0],
+  ],
+  bahasa: [
+    ["Sinonim bagi 'besar'?", "Kecil", "Raksasa", "Kurus", "Pendek", 1],
+    ["Antonim bagi 'panas'?", "Sejuk", "Hangat", "Rebus", "Bakar", 0],
+    ["'Kucing ___ tikus' — kata kerja?", "makan", "besar", "hitam", "ekor", 0],
+    ["Tanda baca untuk ayat tanya?", ".", ",", "?", "!", 2],
+    ["'Ali ___ Sani kawan baik' — kata hubung?", "di", "dan", "ke", "dari", 1],
+    ["Kata ganti nama diri pertama?", "Kamu", "Kami", "Saya", "Mereka", 2],
+    ["Maksud 'mata duitan'?", "Cemburu", "Rakus", "Tamak harta", "Pemarah", 2],
+    ["'seperti enau di belukar' bermaksud?", "Tamak", "Sombong", "Tak tetap pendirian", "Pemalas", 2],
+    ["Imbuhan 'ber-' dalam 'berlari' bermaksud?", "Memiliki", "Sedang melakukan", "Tempat", "Paling", 1],
+    ["'Sekali mereng dayung, ___ gelombang'", "dua", "tiga", "empat", "lima", 1],
+    ["Sinonim 'cantik'?", "Buruk", "Indah", "Kotor", "Tua", 1],
+    ["Ayat aktif lawan kepada…", "Ayat pasif", "Ayat songsang", "Ayat biasa", "Ayat tanya", 0],
+  ],
+};
+
+// ===== STATE =====
+const S = {
+  screen: "setup",
+  teams: { A: { name: "Merah", score: 0, streak: 0, q: null, answered: false, timer: null, timeLeft: 0 }, B: { name: "Biru", score: 0, streak: 0, q: null, answered: false, timer: null, timeLeft: 0 } },
+  target: 8,
+  timerSec: 15,
+  questions: [],
+  over: false,
+};
+
+// ===== AUDIO =====
+let AC = null;
+function audio() { if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } return AC; }
+function beep(freq, dur, type = "sine", vol = 0.2) { const ac = audio(); if (!ac) return; const o = ac.createOscillator(), g = ac.createGain(); o.type = type; o.frequency.value = freq; g.gain.value = vol; o.connect(g); g.connect(ac.destination); o.start(); g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + dur); o.stop(ac.currentTime + dur); }
+function sndCorrect() { beep(880, 0.12, "triangle", 0.22); setTimeout(() => beep(1320, 0.14, "triangle", 0.2), 80); }
+function sndWrong() { beep(180, 0.28, "sawtooth", 0.16); }
+function sndGold() { [660, 880, 1100, 1320].forEach((f, i) => setTimeout(() => beep(f, 0.1, "triangle", 0.2), i * 65)); }
+function sndWin() { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => beep(f, 0.25, "triangle", 0.22), i * 130)); }
+
+// ===== HELPERS =====
+const $ = id => document.getElementById(id);
+function shuffle(arr) { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function parseCustom(txt) {
+  return txt.split("\n").map(l => l.trim()).filter(Boolean).map(l => {
+    const p = l.split("|").map(x => x.trim());
+    if (p.length < 6) return null;
+    const ans = parseInt(p[5], 10);
+    if (isNaN(ans) || ans < 0 || ans > 3) return null;
+    return [p[0], p[1], p[2], p[3], p[4], ans];
+  }).filter(Boolean);
+}
+// get random question id, optionally excluding a set of ids
+function randomQid(exclude = new Set()) {
+  const pool = S.questions.map((_, i) => i).filter(i => !exclude.has(i));
+  if (pool.length === 0) return S.questions.length ? Math.floor(Math.random() * S.questions.length) : -1;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+// ===== SETUP =====
+$("qset").addEventListener("change", e => $("customWrap").classList.toggle("hidden", e.target.value !== "custom"));
+$("startBtn").addEventListener("click", () => {
+  audio();
+  S.teams.A.name = $("nameA").value.trim() || "Merah";
+  S.teams.B.name = $("nameB").value.trim() || "Biru";
+  S.target = parseInt($("target").value, 10);
+  S.timerSec = parseInt($("timer").value, 10);
+  const set = $("qset").value;
+  if (set === "custom") {
+    S.questions = parseCustom($("customQ").value);
+    if (S.questions.length < 4) { alert("Minima 4 soalan custom yang sah formatnya."); return; }
+  } else {
+    S.questions = BANKS[set];
+  }
+  // labels
+  $("labelA").textContent = S.teams.A.name; $("tlA").textContent = S.teams.A.name; $("btA").textContent = S.teams.A.name.toUpperCase();
+  $("labelB").textContent = S.teams.B.name; $("tlB").textContent = S.teams.B.name; $("btB").textContent = S.teams.B.name.toUpperCase();
+  $("roundInfo").textContent = `Sasaran: ${S.target}`;
+  // reset
+  ["A", "B"].forEach(t => { S.teams[t].score = 0; S.teams[t].streak = 0; S.teams[t].answered = false; });
+  $("towerA").innerHTML = ""; $("towerB").innerHTML = "";
+  S.over = false;
+  updateChips();
+  showScreen("game");
+  // load first questions — ensure different from each other
+  loadQuestion("A");
+  loadQuestion("B", new Set([S.teams.A.q?.id]));
+});
+
+function showScreen(name) { document.querySelectorAll(".screen").forEach(s => s.classList.remove("active")); $(name).classList.add("active"); S.screen = name; }
+
+function updateChips() {
+  $("scoreA").textContent = S.teams.A.score;
+  $("scoreB").textContent = S.teams.B.score;
+  $("streakA").textContent = S.teams.A.streak >= 2 ? `🔥${S.teams.A.streak}` : "";
+  $("streakA").className = "streak" + (S.teams.A.streak >= 3 ? " fire" : "");
+  $("streakB").textContent = S.teams.B.streak >= 2 ? `🔥${S.teams.B.streak}` : "";
+  $("streakB").className = "streak" + (S.teams.B.streak >= 3 ? " fire" : "");
+}
+
+// ===== QUESTION LOADING (per team, independent) =====
+function loadQuestion(team, excludeSet) {
+  const t = S.teams[team];
+  if (S.over) return;
+  // ensure exclude includes current own id + the other team's current id (so both boards differ)
+  if (!excludeSet) {
+    excludeSet = new Set();
+    if (t.q != null) excludeSet.add(t.q.id);
+    const other = team === "A" ? "B" : "A";
+    if (S.teams[other].q != null) excludeSet.add(S.teams[other].q.id);
+  }
+  const id = randomQid(excludeSet);
+  if (id < 0) { endGame("out"); return; }
+  const raw = S.questions[id];
+  t.q = { id, question: raw[0], options: [raw[1], raw[2], raw[3], raw[4]], correct: raw[5] };
+  t.answered = false;
+  // render
+  $( "q" + team).textContent = t.q.question;
+  const cc = $("c" + team); cc.innerHTML = "";
+  const labels = ["A", "B", "C", "D"];
+  for (let i = 0; i < 4; i++) {
+    const b = document.createElement("button");
+    b.className = "choice";
+    b.innerHTML = `<span style="opacity:0.55; margin-right:6px;">${labels[i]}.</span>${t.q.options[i]}`;
+    b.addEventListener("click", () => answer(team, i, b));
+    cc.appendChild(b);
+  }
+  // timer
+  clearInterval(t.timer);
+  if (S.timerSec > 0) {
+    t.timeLeft = S.timerSec;
+    const bar = $("tbar" + team);
+    bar.classList.remove("low");
+    bar.querySelector("div").style.width = "100%";
+    t.timer = setInterval(() => {
+      t.timeLeft -= 0.1;
+      const pct = Math.max(0, (t.timeLeft / S.timerSec) * 100);
+      bar.querySelector("div").style.width = pct + "%";
+      bar.classList.toggle("low", t.timeLeft <= 3);
+      if (t.timeLeft <= 0) {
+        clearInterval(t.timer);
+        if (!t.answered) timeoutAnswer(team);
+      }
+    }, 100);
+  } else {
+    $("tbar" + team).querySelector("div").style.width = "0%";
+  }
+}
+
+function timeoutAnswer(team) {
+  const t = S.teams[team];
+  if (t.answered || S.over) return;
+  t.answered = true;
+  // highlight correct answer, dim others
+  const choices = $("c" + team).querySelectorAll(".choice");
+  choices.forEach((c, i) => {
+    c.classList.add("locked");
+    if (i === t.q.correct) c.classList.add("correct");
+    else c.classList.add("dim");
+  });
+  t.streak = 0;
+  updateChips();
+  sndWrong();
+  scheduleNext(team);
+}
+
+// ===== ANSWER =====
+function answer(team, idx, btn) {
+  const t = S.teams[team];
+  if (t.answered || S.over) return;
+  t.answered = true;
+  clearInterval(t.timer);
+  const choices = $("c" + team).querySelectorAll(".choice");
+  choices.forEach(c => c.classList.add("locked"));
+
+  if (idx === t.q.correct) {
+    btn.classList.add("correct");
+    sndCorrect();
+    t.streak += 1;
+    const gold = t.streak > 0 && t.streak % 3 === 0;
+    addBlock(team, gold);
+    t.score += gold ? 2 : 1;
+    if (gold) sndGold();
+    updateChips();
+    if (t.score >= S.target) { setTimeout(() => endGame(team), 700); return; }
+  } else {
+    btn.classList.add("wrong");
+    choices[t.q.correct].classList.add("correct");
+    choices.forEach((c, i) => { if (i !== idx && i !== t.q.correct) c.classList.add("dim"); });
+    sndWrong();
+    t.streak = 0;
+    updateChips();
+  }
+  scheduleNext(team);
+}
+
+function scheduleNext(team) {
+  setTimeout(() => { if (!S.over) loadQuestion(team); }, 950);
+}
+
+function addBlock(team, gold) {
+  const tower = $("tower" + team);
+  const b = document.createElement("div");
+  b.className = "block " + team + (gold ? " gold" : "");
+  const count = tower.children.length;
+  const h = Math.max(16, 40 - count * 1.1);
+  b.style.height = h + "px";
+  tower.appendChild(b);
+}
+
+// ===== END =====
+function endGame(winner) {
+  if (S.over) return;
+  S.over = true;
+  ["A", "B"].forEach(t => clearInterval(S.teams[t].timer));
+  if (winner === "out") {
+    if (S.teams.A.score > S.teams.B.score) winner = "A";
+    else if (S.teams.B.score > S.teams.A.score) winner = "B";
+    else winner = "draw";
+  }
+  let title, stats;
+  if (winner === "draw") {
+    title = "🤝 SERI!";
+    stats = `${S.teams.A.name}: ${S.teams.A.score} blok<br>${S.teams.B.name}: ${S.teams.B.score} blok`;
+  } else {
+    const w = S.teams[winner], l = S.teams[winner === "A" ? "B" : "A"];
+    title = `🎉 ${w.name.toUpperCase()} MENANG!`;
+    stats = `${w.name}: ${w.score} blok<br>${l.name}: ${l.score} blok`;
+  }
+  $("winTitle").textContent = title;
+  $("winStats").innerHTML = stats;
+  showScreen("win");
+  sndWin();
+  confetti();
+}
+
+function confetti() {
+  const colors = ["#ef4444", "#3b82f6", "#fbbf24", "#22c55e", "#a855f7"];
+  for (let i = 0; i < 70; i++) {
+    const c = document.createElement("div");
+    c.className = "confetti";
+    c.style.left = Math.random() * 100 + "vw";
+    c.style.background = colors[Math.floor(Math.random() * colors.length)];
+    c.style.animationDuration = (2 + Math.random() * 2) + "s";
+    c.style.animationDelay = Math.random() * 0.5 + "s";
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 5000);
+  }
+}
+
+$("replayBtn").addEventListener("click", () => showScreen("setup"));
+$("quitBtn").addEventListener("click", () => endGame("out"));
+</script>
+</body>
+</html>

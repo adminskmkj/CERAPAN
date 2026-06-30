@@ -28,10 +28,10 @@ export default function LaporanPage() {
       <div className="rounded-2xl border border-stone bg-paper-card p-8 text-center shadow-soft">
         <p className="text-muted">Rekod tidak dijumpai.</p>
         <Link
-          href="/senarai"
+          href="/rekod/laporan-individu"
           className="mt-4 inline-block text-sm font-semibold text-accent"
         >
-          ← Kembali ke senarai
+          ← Kembali ke Laporan Individu
         </Link>
       </div>
     );

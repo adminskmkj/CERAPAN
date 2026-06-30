@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-const steps = ["Maklumat", "Penskoran", "Ringkasan"];
+const steps = ["Maklumat", "Penskoran & Ulasan", "Ringkasan"];
 
 export function StepIndicator({ current }: { current: number }) {
   return (

@@ -1,3 +1,5 @@
+import { KOD_SEKOLAH, NAMA_SEKOLAH } from "@/lib/data/sekolah";
+import { findDuplicateCerapan } from "@/lib/storage/cerapan-supabase";
 import type { CerapanRecord } from "@/lib/types/cerapan";
 import { calculateCerapan } from "@/lib/scoring/standard4";
 import type { InputValue } from "@/lib/scoring/standard4";
@@ -36,10 +38,24 @@ export function saveCerapan(
   const now = new Date().toISOString();
   const result = calculateCerapan(data.scores);
   const records = readAll();
+  const duplicate = findDuplicateCerapan(
+    records,
+    data.namaGuru,
+    data.sesiPengisian,
+    data.id,
+    data.panitiaKp
+  );
+  if (duplicate) {
+    throw new Error(
+      `Rekod ${data.sesiPengisian} untuk ${data.namaGuru} sudah wujud.`
+    );
+  }
   const existing = data.id ? records.find((r) => r.id === data.id) : null;
 
   const record: CerapanRecord = {
     ...data,
+    kodSekolah: KOD_SEKOLAH,
+    namaSekolah: NAMA_SEKOLAH,
     id: existing?.id ?? crypto.randomUUID(),
     result,
     createdAt: existing?.createdAt ?? now,

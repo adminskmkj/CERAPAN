@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireCerapanDelete } from "@/lib/auth/require-cerapan";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   deleteCerapanSupabase,
@@ -46,6 +47,14 @@ export async function DELETE(
       { status: 503 }
     );
   }
+
+  const record = await getCerapanSupabase(admin, id);
+  if (!record) {
+    return NextResponse.json({ error: "Tidak dijumpai" }, { status: 404 });
+  }
+
+  const auth = await requireCerapanDelete(record);
+  if (auth.error) return auth.error;
 
   try {
     await deleteCerapanSupabase(admin, id);

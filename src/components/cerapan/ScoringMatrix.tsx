@@ -15,9 +15,20 @@ const SKOR_COLS = [4, 3, 2, 1, 0] as const;
 interface Props {
   scores: Record<string, InputValue | undefined>;
   onChange: (itemId: string, value: InputValue) => void;
+  dapatanPencerap?: Record<string, string>;
+  onDapatanChange?: (code: string, value: string) => void;
+  langkahPenambahbaikan?: Record<string, string>;
+  onLangkahChange?: (code: string, value: string) => void;
 }
 
-export function ScoringMatrix({ scores, onChange }: Props) {
+export function ScoringMatrix({
+  scores,
+  onChange,
+  dapatanPencerap = {},
+  onDapatanChange,
+  langkahPenambahbaikan = {},
+  onLangkahChange,
+}: Props) {
   return (
     <div className="space-y-8">
       {SUB_STANDARDS.map((sub) => (
@@ -112,6 +123,40 @@ export function ScoringMatrix({ scores, onChange }: Props) {
           <p className="excel-rubric-foot">
             {sub.aspect} · Wajaran {sub.weight}%
           </p>
+
+          {onDapatanChange && (
+            <div className="excel-ulasan-stack">
+              <label className="excel-ulasan block">
+                <span className="excel-ulasan-label">
+                  Dapatan Pencerap — {sub.code} {sub.title}
+                </span>
+                <textarea
+                  value={dapatanPencerap[sub.code] ?? ""}
+                  onChange={(e) => onDapatanChange(sub.code, e.target.value)}
+                  rows={3}
+                  placeholder="Tulis dapatan pencerapan sambil merujuk skor di atas…"
+                  className="excel-ulasan-input"
+                />
+              </label>
+              {onLangkahChange && (
+                <label className="excel-ulasan-langkah block">
+                  <span className="excel-ulasan-langkah-label">
+                    Langkah Penambahbaikan — {sub.code}
+                    <span className="excel-ulasan-langkah-note">
+                      (diisi oleh guru yang dicerap)
+                    </span>
+                  </span>
+                  <textarea
+                    value={langkahPenambahbaikan[sub.code] ?? ""}
+                    onChange={(e) => onLangkahChange(sub.code, e.target.value)}
+                    rows={3}
+                    placeholder="Ruang untuk guru mengisi langkah penambahbaikan…"
+                    className="excel-ulasan-langkah-input"
+                  />
+                </label>
+              )}
+            </div>
+          )}
         </section>
       ))}
     </div>

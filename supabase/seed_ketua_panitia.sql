@@ -1,0 +1,36 @@
+-- Ketua Panitia SMKJS (sumber: senarai rasmi sekolah)
+-- 1) Cipta user di Supabase Auth (satu e-mel per KP), kata laluan sementara: 123456
+--    User metadata: {"must_change_password": true}
+-- 2) Ganti USER_UUID_* dengan UUID dari Authentication → Users.
+-- 3) `full_name` & `panitia` mesti sepadan dengan jadual di bawah.
+
+-- | Panitia            | Ketua Panitia                              | E-mel cadangan (Auth)              |
+-- |--------------------|--------------------------------------------|------------------------------------|
+-- | BAHASA MELAYU      | NURUL SHAFINA BINTI HAMEDI                | bm.skmkj@edu.my                    |
+-- | BAHASA INGGERIS    | CHRISTOPHER LIM TSE ZHERN                  | bi.skmkj@edu.my                    |
+-- | MATEMATIK          | SARINAH BINTI SHAWAL                       | mate.skmkj@edu.my                  |
+-- | SAINS              | LUTFI BIN ISNIN                             | sains.skmkj@edu.my                 |
+-- | PENDIDIKAN ISLAM   | ABDUL RAHMAN BIN MOHAMED                   | pi.skmkj@edu.my                    |
+-- | BAHASA ARAB        | ABDULLAH BIN MASTOR                        | arab.skmkj@edu.my                  |
+-- | PJPK               | ZAINAB BINTI ALI                           | pjpk.skmkj@edu.my                  |
+-- | MUZIK              | MUHAMMAD AMIR ASYRAF BIN ROSLI             | muzik.skmkj@edu.my                 |
+-- | SEJARAH            | MOHD RIDHWAN BIN HAJI OTHMAN               | sj.skmkj@edu.my                    |
+-- | RBT                | MOHAMAD HAIZAR BIN SUROR                   | rbt.skmkj@edu.my                   |
+-- | SENI VISUAL        | MUHAMMAD AKIF NASRIN BIN MOHAMAD NASIR     | psv.skmkj@edu.my                   |
+--
+-- Jadual penuh: docs/akaun-ketua-panitia.md
+
+-- insert into profiles (id, full_name, role, panitia) values
+-- ('USER_UUID_BM', 'NURUL SHAFINA BINTI HAMEDI', 'ketua_panitia', 'BAHASA MELAYU'),
+-- ('USER_UUID_BI', 'CHRISTOPHER LIM TSE ZHERN', 'ketua_panitia', 'BAHASA INGGERIS'),
+-- ('USER_UUID_MATE', 'SARINAH BINTI SHAWAL', 'ketua_panitia', 'MATEMATIK'),
+-- ('USER_UUID_SAINS', 'LUTFI BIN ISNIN', 'ketua_panitia', 'SAINS'),
+-- ('USER_UUID_PI', 'ABDUL RAHMAN BIN MOHAMED', 'ketua_panitia', 'PENDIDIKAN ISLAM'),
+-- ('USER_UUID_ARAB', 'ABDULLAH BIN MASTOR', 'ketua_panitia', 'BAHASA ARAB'),
+-- ('USER_UUID_PJPK', 'ZAINAB BINTI ALI', 'ketua_panitia', 'PJPK'),
+-- ('USER_UUID_MUZIK', 'MUHAMMAD AMIR ASYRAF BIN ROSLI', 'ketua_panitia', 'MUZIK'),
+-- ('USER_UUID_SJ', 'MOHD RIDHWAN BIN HAJI OTHMAN', 'ketua_panitia', 'SEJARAH'),
+-- ('USER_UUID_RBT', 'MOHAMAD HAIZAR BIN SUROR', 'ketua_panitia', 'RBT'),
+-- ('USER_UUID_PSV', 'MUHAMMAD AKIF NASRIN BIN MOHAMAD NASIR', 'ketua_panitia', 'SENI VISUAL');
+
+-- Rujukan kod: src/lib/data/ketua-panitia-smkjs.ts

@@ -262,11 +262,9 @@ export const SESI_PENGISIAN = [
   "KENDIRI",
   "PENCERAPAN PERTAMA",
   "PENCERAPAN KEDUA",
+  "PENCERAPAN KETUA PANITIA",
 ] as const;
 
-export const KALENDAR_AKADEMIK = [
-  "2023/2024",
-  "2024/2025",
-  "2025/2026",
-  "2026/2027",
-] as const;
+export type JenisCerapan = (typeof SESI_PENGISIAN)[number];
+
+export const KALENDAR_AKADEMIK = ["2026", "2027", "2028"] as const;

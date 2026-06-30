@@ -18,10 +18,54 @@
   --surface: var(--paper-2);
   --text: var(--ink);
   --border: var(--stone);
+  --app-header-h: 4.25rem;
 }
 
 * {
   box-sizing: border-box;
+}
+
+.mouse-follower {
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: fixed;
+  z-index: 1;
+}
+
+.mouse-follower-glow {
+  background: radial-gradient(
+    circle,
+    rgba(30, 58, 138, 0.14) 0%,
+    rgba(30, 58, 138, 0.06) 28%,
+    rgba(228, 221, 205, 0.08) 48%,
+    transparent 72%
+  );
+  height: 520px;
+  left: 0;
+  margin-left: -260px;
+  margin-top: -260px;
+  position: fixed;
+  top: 0;
+  transition: opacity 0.35s ease;
+  width: 520px;
+  will-change: transform;
+}
+
+.mouse-follower-dot {
+  background: var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgba(30, 58, 138, 0.12);
+  height: 6px;
+  left: 0;
+  margin-left: -3px;
+  margin-top: -3px;
+  opacity: 0.55;
+  position: fixed;
+  top: 0;
+  transition: opacity 0.35s ease;
+  width: 6px;
+  will-change: transform;
 }
 
 @layer base {
@@ -224,6 +268,839 @@
   text-align: right;
 }
 
+/* Jadual melintang — sama layout Excel laporan skor */
+.excel-horizontal {
+  border: 1px solid #000;
+  border-collapse: collapse;
+  font-size: 11px;
+  width: 100%;
+}
+
+.excel-horizontal-fit {
+  table-layout: fixed;
+}
+
+.excel-horizontal-fit .excel-h-th-code,
+.excel-horizontal-fit .excel-h-th-pct,
+.excel-horizontal-fit .excel-h-th-total,
+.excel-horizontal-fit .excel-h-th-taraf,
+.excel-horizontal-fit .excel-h-td-num,
+.excel-horizontal-fit .excel-h-td-taraf {
+  font-size: 10px;
+  overflow: hidden;
+  padding: 2px 2px;
+  text-overflow: ellipsis;
+}
+
+.excel-horizontal th,
+.excel-horizontal td {
+  border: 1px solid #000;
+  padding: 3px 6px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.excel-horizontal .excel-h-th-code {
+  background: #bdd7ee;
+  font-weight: 700;
+  text-align: center;
+}
+
+.excel-horizontal .excel-h-th-pct {
+  background: #f8cbad;
+  font-weight: 700;
+  text-align: center;
+}
+
+.excel-horizontal .excel-h-th-total {
+  background: #bdd7ee;
+  font-weight: 700;
+  text-align: center;
+}
+
+.excel-horizontal .excel-h-th-taraf {
+  background: #fff;
+  font-weight: 700;
+  text-align: center;
+}
+
+.excel-horizontal .excel-h-td-num {
+  background: #fff;
+  font-family: ui-monospace, monospace;
+  text-align: right;
+}
+
+.excel-horizontal .excel-h-td-taraf {
+  background: #fff;
+  font-weight: 700;
+  text-align: center;
+}
+
+.excel-horizontal .excel-h-td-label {
+  background: #fff;
+  font-weight: 700;
+  text-align: left;
+}
+
+.excel-horizontal .excel-h-td-jenis {
+  background: #fff;
+  font-size: 10px;
+  text-align: left;
+}
+
+.excel-horizontal tr.excel-h-row-summary .excel-h-td-label,
+.excel-horizontal tr.excel-h-row-summary .excel-h-td-jenis {
+  background: #e2efda;
+}
+
+/* Kod warna markah — gaya Excel conditional formatting */
+.excel-horizontal .excel-h--kosong {
+  background: #f2f2f2;
+  color: #a0a0a0;
+}
+
+.excel-horizontal .excel-h--ptps {
+  background: #ffc7ce;
+  color: #9c0006;
+  font-weight: 700;
+}
+
+.excel-horizontal .excel-h--amaran {
+  background: #ffeb9c;
+  color: #9c6500;
+  font-weight: 700;
+}
+
+.excel-horizontal .excel-h--baik {
+  background: #e2efda;
+  color: #375623;
+}
+
+.excel-horizontal .excel-h--cemerlang {
+  background: #c6efce;
+  color: #006100;
+  font-weight: 700;
+}
+
+.excel-horizontal .excel-h-taraf--cemerlang {
+  background: #c6efce;
+  color: #006100;
+}
+
+.excel-horizontal .excel-h-taraf--baik {
+  background: #e2efda;
+  color: #375623;
+}
+
+.excel-horizontal .excel-h-taraf--amaran {
+  background: #ffeb9c;
+  color: #9c6500;
+}
+
+.excel-horizontal .excel-h-taraf--ptps {
+  background: #ffc7ce;
+  color: #9c0006;
+}
+
+.excel-horizontal-legend {
+  border-top: 1px solid #000;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 9px;
+  gap: 8px 14px;
+  padding: 4px 8px;
+}
+
+.excel-horizontal-legend span {
+  align-items: center;
+  display: inline-flex;
+  gap: 4px;
+}
+
+.excel-horizontal-legend i {
+  border: 1px solid #666;
+  border-radius: 3px;
+  display: inline-block;
+  flex-shrink: 0;
+  height: 12px;
+  width: 20px;
+}
+
+.excel-horizontal-legend i.excel-h--ptps {
+  background: #ffc7ce;
+  border-color: #9c0006;
+}
+
+.excel-horizontal-legend i.excel-h--amaran {
+  background: #ffeb9c;
+  border-color: #9c6500;
+}
+
+.excel-horizontal-legend i.excel-h--baik {
+  background: #e2efda;
+  border-color: #375623;
+}
+
+.excel-horizontal-legend i.excel-h--cemerlang {
+  background: #c6efce;
+  border-color: #006100;
+}
+
+/* Dashboard premium shell */
+.dash-page {
+  margin-inline: auto;
+  max-width: 88rem;
+}
+
+.dash-hero {
+  background: linear-gradient(
+    135deg,
+    rgba(251, 248, 241, 0.98) 0%,
+    rgba(232, 237, 246, 0.55) 100%
+  );
+  border: 1px solid var(--stone);
+  border-radius: 24px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.85) inset,
+    0 12px 40px -18px rgba(30, 58, 138, 0.14);
+  overflow: hidden;
+  padding: 1.75rem 2rem;
+  position: relative;
+}
+
+.dash-hero::before {
+  background: linear-gradient(90deg, var(--accent), transparent);
+  content: "";
+  height: 3px;
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: 100%;
+}
+
+.dash-section-head {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  justify-content: space-between;
+}
+
+.dash-section-title {
+  font-family: var(--font-serif), Georgia, serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.dash-stat-card {
+  background: var(--paper-card, #fbf8f1);
+  border: 1px solid rgba(228, 221, 205, 0.9);
+  border-radius: 20px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 1px 2px rgba(22, 22, 20, 0.04),
+    0 14px 36px -20px rgba(30, 58, 138, 0.18);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.dash-stat-card:hover {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 18px 44px -18px rgba(30, 58, 138, 0.22);
+  transform: translateY(-1px);
+}
+
+.dash-stat-card-header {
+  border-bottom: 1px solid var(--stone);
+  padding: 1.35rem 1.5rem 1.15rem;
+}
+
+.dash-stat-card--big .dash-stat-card-header {
+  border-bottom: none;
+  padding-bottom: 0.35rem;
+}
+
+.dash-stat-title {
+  font-family: var(--font-serif), Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.dash-stat-subtitle {
+  color: var(--muted);
+  font-size: 0.875rem;
+  margin-top: 0.35rem;
+}
+
+.dash-stat-main {
+  border-bottom: 1px solid var(--stone);
+  border-top: 1px solid var(--stone);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dash-stat-main-cell {
+  padding: 1.35rem 1.5rem;
+}
+
+.dash-stat-main-cell + .dash-stat-main-cell {
+  border-left: 1px solid var(--stone);
+}
+
+.dash-stat-label {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  font-size: 0.8rem;
+  font-weight: 500;
+  gap: 0.4rem;
+}
+
+.dash-stat-metric {
+  font-family: var(--font-serif), Georgia, serif;
+  font-size: 2rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.dash-stat-metric-lg {
+  font-family: var(--font-serif), Georgia, serif;
+  font-size: clamp(2.25rem, 5vw, 3rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  margin-top: 0.65rem;
+}
+
+.dash-stat-pct {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-size: 1.35rem;
+  font-weight: 500;
+  margin-left: 0.1rem;
+  opacity: 0.55;
+}
+
+.dash-stat-taraf-row {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 1rem 1.25rem 1.25rem;
+}
+
+.dash-stat-taraf-box {
+  border-radius: 14px;
+  padding: 1.1rem 1.25rem;
+}
+
+.dash-stat-taraf-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.dash-stat-taraf-box.taraf-cemerlang .dash-stat-taraf-label,
+.dash-stat-taraf-box.taraf-cemerlang .dash-stat-metric-lg {
+  color: #1f6b3a;
+}
+
+.dash-stat-taraf-box.taraf-ptps .dash-stat-taraf-label,
+.dash-stat-taraf-box.taraf-ptps .dash-stat-metric-lg {
+  color: #8a2f24;
+}
+
+.dash-stat-grid {
+  background: var(--stone);
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dash-stat-grid > div {
+  background: var(--paper-card, #fbf8f1);
+  padding: 1rem 1.15rem;
+}
+
+.dash-progress-track {
+  background: var(--stone-2);
+  border-radius: 999px;
+  height: 6px;
+  overflow: hidden;
+}
+
+.dash-progress-fill {
+  border-radius: 999px;
+  height: 100%;
+  transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dash-aspek-card {
+  background: #fff;
+  border: 1px solid rgba(228, 221, 205, 0.95);
+  border-radius: 20px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.95) inset,
+    0 16px 48px -24px rgba(30, 58, 138, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dash-aspek-head {
+  align-items: flex-start;
+  background: linear-gradient(
+    180deg,
+    rgba(251, 248, 241, 1) 0%,
+    rgba(255, 255, 255, 1) 100%
+  );
+  border-bottom: 1px solid var(--stone);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  justify-content: space-between;
+  padding: 1.35rem 1.5rem 1.15rem;
+}
+
+.dash-aspek-taraf {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+
+.excel-premium {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 0;
+}
+
+.excel-premium .excel-horizontal {
+  border: none;
+  font-size: 1rem;
+}
+
+.excel-premium .excel-horizontal th,
+.excel-premium .excel-horizontal td {
+  border-color: #d4dae3;
+}
+
+/* Override excel-horizontal-fit 2px padding — sel besar macam kad stat */
+.excel-premium .excel-horizontal.excel-horizontal-fit th,
+.excel-premium .excel-horizontal.excel-horizontal-fit td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+.excel-premium .excel-horizontal.excel-horizontal-fit .excel-h-th-code,
+.excel-premium .excel-horizontal.excel-horizontal-fit .excel-h-th-pct {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  min-height: 3.25rem;
+  padding: 0.65rem 0.35rem;
+}
+
+.excel-premium .excel-horizontal.excel-horizontal-fit .excel-h-th-total,
+.excel-premium .excel-horizontal.excel-horizontal-fit .excel-h-th-taraf {
+  font-size: 0.8rem;
+  font-weight: 700;
+  min-height: 3.25rem;
+  padding: 0.75rem 0.5rem;
+}
+
+.excel-premium .excel-horizontal.excel-horizontal-fit td {
+  font-family: var(--font-serif), Georgia, serif;
+  font-size: clamp(1rem, 1.6vw, 1.35rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  min-height: 3.75rem;
+  padding: 1rem 0.4rem;
+  text-align: center;
+}
+
+.excel-premium .excel-horizontal.excel-horizontal-fit tr:last-child td {
+  font-size: clamp(1.1rem, 1.8vw, 1.5rem);
+  font-weight: 700;
+  min-height: 3.85rem;
+  padding: 1.05rem 0.5rem;
+}
+
+.excel-premium .excel-horizontal .excel-h-th-code {
+  background: linear-gradient(180deg, #d6e6f7 0%, #c5d9ef 100%);
+  color: #1e3a5f;
+  letter-spacing: 0.02em;
+}
+
+.excel-premium .excel-horizontal .excel-h-th-pct {
+  background: linear-gradient(180deg, #fde8d8 0%, #f8d4bc 100%);
+  color: #7c3d12;
+}
+
+.excel-premium .excel-horizontal .excel-h-th-total {
+  background: linear-gradient(180deg, #d6e6f7 0%, #c5d9ef 100%);
+  color: #1e3a5f;
+}
+
+.excel-premium .excel-horizontal .excel-h-td-num {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.excel-premium .excel-horizontal-legend {
+  background: #faf9f6;
+  border-top: 1px solid var(--stone);
+  flex-shrink: 0;
+  font-size: 9px;
+  gap: 8px 10px;
+  padding: 8px 12px;
+}
+
+.excel-premium .excel-horizontal-legend span {
+  background: #fff;
+  border: 1px solid var(--stone);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 5px 12px 5px 8px;
+}
+
+.excel-premium .excel-horizontal-legend i {
+  border-radius: 4px;
+  height: 14px;
+  width: 22px;
+}
+
+.dash-empty {
+  background: linear-gradient(
+    180deg,
+    rgba(251, 248, 241, 0.6),
+    rgba(255, 255, 255, 0.9)
+  );
+  border: 1px dashed var(--stone);
+  border-radius: 20px;
+  padding: 3rem 1.5rem;
+  text-align: center;
+}
+
+/* Premium shared — tabs, filters, accordion, home */
+.premium-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.premium-tab {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.premium-tab:hover {
+  transform: translateY(-1px);
+}
+
+.premium-tab--active {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.2) inset,
+    0 8px 24px -10px rgba(30, 58, 138, 0.45);
+  color: #fff;
+}
+
+.premium-tab--idle {
+  background: var(--paper-2);
+  border-color: var(--stone);
+  color: var(--ink-2);
+}
+
+.premium-tab--idle:hover {
+  background: var(--stone-2);
+}
+
+.premium-filter {
+  background: var(--paper-2);
+  border: 1px solid rgba(228, 221, 205, 0.95);
+  border-radius: 20px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 12px 36px -22px rgba(30, 58, 138, 0.16);
+  padding: 1.25rem;
+}
+
+.premium-accordion {
+  background: var(--paper-2);
+  border: 1px solid rgba(228, 221, 205, 0.9);
+  border-radius: 20px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 1px 2px rgba(22, 22, 20, 0.04),
+    0 10px 32px -20px rgba(30, 58, 138, 0.14);
+  overflow: hidden;
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.premium-accordion:hover {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 16px 40px -18px rgba(30, 58, 138, 0.2);
+}
+
+.premium-accordion-trigger {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  text-align: left;
+  transition: background 0.2s ease;
+  width: 100%;
+}
+
+.premium-accordion-trigger:hover {
+  background: rgba(239, 234, 224, 0.45);
+}
+
+.premium-accordion-body {
+  background: linear-gradient(
+    180deg,
+    rgba(247, 243, 235, 0.5) 0%,
+    rgba(251, 248, 241, 0.9) 100%
+  );
+  border-top: 1px solid var(--stone);
+  padding: 0.75rem 1rem 1rem;
+}
+
+.premium-jenis-row {
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--stone);
+  border-radius: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.premium-jenis-row:hover {
+  border-color: rgba(30, 58, 138, 0.22);
+  box-shadow: 0 4px 16px -10px rgba(30, 58, 138, 0.18);
+}
+
+.premium-jenis-row--empty {
+  background: rgba(239, 234, 224, 0.35);
+  border-style: dashed;
+}
+
+.premium-home {
+  background: linear-gradient(
+    135deg,
+    rgba(251, 248, 241, 0.98) 0%,
+    rgba(232, 237, 246, 0.5) 55%,
+    rgba(251, 248, 241, 0.95) 100%
+  );
+  border: 1px solid var(--stone);
+  border-radius: 28px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.85) inset,
+    0 20px 60px -28px rgba(30, 58, 138, 0.2);
+  overflow: hidden;
+  padding: 3.5rem 1.75rem;
+  position: relative;
+}
+
+@media (min-width: 768px) {
+  .premium-home {
+    padding: 5rem 3rem;
+  }
+}
+
+.premium-home::before {
+  background: linear-gradient(90deg, var(--accent), transparent);
+  content: "";
+  height: 3px;
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: 100%;
+}
+
+.premium-home-grid {
+  background-image: radial-gradient(
+    circle,
+    rgba(228, 221, 205, 0.55) 1px,
+    transparent 1px
+  );
+  background-size: 20px 20px;
+  inset: 0;
+  opacity: 0.45;
+  pointer-events: none;
+  position: absolute;
+}
+
+.premium-btn-primary {
+  align-items: center;
+  background: var(--accent);
+  border-radius: 999px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.2) inset,
+    0 1px 2px rgba(22, 22, 20, 0.06),
+    0 12px 40px -16px rgba(30, 58, 138, 0.35);
+  color: #fff;
+  display: inline-flex;
+  font-size: 0.875rem;
+  font-weight: 600;
+  gap: 0.5rem;
+  padding: 0.65rem 1.35rem;
+  transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.premium-btn-primary:hover {
+  opacity: 0.95;
+  transform: translateY(-2px);
+}
+
+.premium-btn-secondary {
+  align-items: center;
+  background: var(--accent-soft);
+  border: 1px solid rgba(30, 58, 138, 0.18);
+  border-radius: 999px;
+  color: var(--accent);
+  display: inline-flex;
+  font-size: 0.875rem;
+  font-weight: 600;
+  gap: 0.5rem;
+  padding: 0.65rem 1.35rem;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.premium-btn-secondary:hover {
+  background: #dce6f4;
+  transform: translateY(-1px);
+}
+
+.premium-header {
+  background: rgba(247, 243, 235, 0.82);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(228, 221, 205, 0.95);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 8px 32px -24px rgba(30, 58, 138, 0.12);
+}
+
+.premium-logo {
+  align-items: center;
+  background: linear-gradient(145deg, #1e3a8a 0%, #2563eb 100%);
+  border-radius: 12px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.25) inset,
+    0 6px 18px -8px rgba(30, 58, 138, 0.55);
+  display: flex;
+  font-family: ui-monospace, monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  height: 2.25rem;
+  justify-content: center;
+  width: 2.25rem;
+  color: #fff;
+}
+
+.excel-td-skor--kosong {
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+
+.excel-td-skor--lemah {
+  background: #fecaca;
+  color: #7f1d1d;
+  font-weight: 700;
+}
+
+.excel-td-skor--amaran {
+  background: #fde68a;
+  color: #78350f;
+  font-weight: 700;
+}
+
+.excel-ulasan-stack {
+  border: 2px solid #1e3a8a;
+  border-top: none;
+}
+
+.excel-ulasan {
+  background: #eff6ff;
+  border: none;
+  padding: 10px 12px;
+}
+
+.excel-ulasan-label {
+  color: #1e3a8a;
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.excel-ulasan-input {
+  background: #fff;
+  border: 1px solid #93c5fd;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 8px 10px;
+  resize: vertical;
+  width: 100%;
+}
+
+.excel-ulasan-input:focus {
+  border-color: #1e3a8a;
+  outline: 2px solid #bfdbfe;
+  outline-offset: 1px;
+}
+
+.excel-ulasan-langkah {
+  background: #f8fafc;
+  border-top: 1px solid #94a3b8;
+  padding: 10px 12px;
+}
+
+.excel-ulasan-langkah-label {
+  color: #334155;
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.excel-ulasan-langkah-note {
+  color: #64748b;
+  display: block;
+  font-size: 10px;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.excel-ulasan-langkah-input {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 8px 10px;
+  resize: vertical;
+  width: 100%;
+}
+
+.excel-ulasan-langkah-input:focus {
+  border-color: #475569;
+  outline: 2px solid #e2e8f0;
+  outline-offset: 1px;
+}
+
 /* Laporan borang formal */
 .laporan-formal {
   background: #fff;
@@ -233,7 +1110,9 @@
   line-height: 1.25;
   margin: 0 auto;
   max-width: 210mm;
+  overflow-wrap: anywhere;
   padding: 8mm 10mm;
+  word-break: break-word;
 }
 
 .laporan-formal-header {
@@ -333,6 +1212,465 @@
   text-align: center;
 }
 
+.laporan-ulasan-section {
+  border-top: 2px solid #000;
+  margin-top: 6mm;
+  padding-top: 4mm;
+}
+
+.laporan-ulasan-title {
+  font-size: 11pt;
+  font-weight: 700;
+  margin: 0;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.laporan-ulasan-sub {
+  font-size: 9pt;
+  margin: 2mm 0 4mm;
+  text-align: center;
+}
+
+.laporan-ulasan-umum {
+  border: 1px solid #000;
+  margin-bottom: 3mm;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 2mm;
+}
+
+.laporan-ulasan-label {
+  font-size: 9pt;
+  font-weight: 700;
+  margin: 0 0 2mm;
+}
+
+.laporan-ulasan-text {
+  font-size: 9pt;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.ulasan-text-wrap {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: pre-line;
+}
+
+.laporan-ulasan-section .ulasan-text-wrap,
+.maklum-balas-formal .ulasan-text-wrap {
+  line-height: 1.15;
+  margin: 0;
+}
+
+.laporan-ulasan-kosong {
+  font-size: 9pt;
+  font-style: italic;
+  margin: 2mm 0 4mm;
+  text-align: center;
+}
+
+.laporan-formal .mb-aspek-table {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 9pt;
+}
+
+.laporan-formal .mb-col-no {
+  width: 4%;
+}
+
+.laporan-formal .mb-col-aspek {
+  width: 14%;
+}
+
+.laporan-formal .mb-col-dapatan {
+  width: 49%;
+}
+
+.laporan-formal .mb-col-langkah {
+  width: 33%;
+}
+
+.laporan-formal .mb-cell-aspek {
+  font-size: 8pt;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.laporan-formal .mb-tindak-lanjut {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 9.5pt;
+}
+
+/* Borang Maklum Balas Pencerapan */
+.maklum-balas-formal {
+  background: #fff;
+  color: #000;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10pt;
+  line-height: 1.3;
+  margin: 0 auto;
+  max-width: 210mm;
+  overflow-wrap: anywhere;
+  padding: 10mm 12mm;
+  word-break: break-word;
+}
+
+.mb-logo-header {
+  align-items: center;
+  border-bottom: 2px solid #000;
+  display: flex;
+  gap: 4mm;
+  justify-content: space-between;
+  margin-bottom: 5mm;
+  padding-bottom: 3mm;
+}
+
+.mb-logo-side {
+  align-items: center;
+  display: flex;
+  flex: 0 0 24mm;
+  justify-content: center;
+}
+
+.mb-logo-img {
+  height: 24mm;
+  max-width: 24mm;
+  object-fit: contain;
+  width: auto;
+}
+
+.mb-logo-center {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+
+.mb-logo-school {
+  font-size: 11pt;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0 0 2mm;
+  text-transform: uppercase;
+}
+
+.mb-logo-title {
+  font-size: 12pt;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.laporan-formal .mb-logo-header,
+.laporan-formal .mb-logo-school,
+.laporan-formal .mb-logo-title {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.mb-school-name {
+  font-size: 11pt;
+  font-weight: 700;
+  margin: 0 0 2mm;
+  text-transform: uppercase;
+}
+
+.mb-title {
+  font-size: 12pt;
+  font-weight: 700;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.mb-meta-table {
+  border-collapse: collapse;
+  margin-bottom: 4mm;
+  width: 100%;
+}
+
+.mb-meta-table td {
+  border: none;
+  font-size: 9.5pt;
+  padding: 1mm 2mm;
+  vertical-align: top;
+}
+
+.mb-meta-label {
+  font-weight: 700;
+  white-space: nowrap;
+  width: 28%;
+}
+
+.mb-meta-value {
+  width: 22%;
+}
+
+.mb-ulasan-umum {
+  border: 1px solid #000;
+  margin-bottom: 3mm;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 2mm;
+}
+
+.mb-section-label {
+  font-size: 9pt;
+  font-weight: 700;
+  margin: 0 0 2mm;
+}
+
+.mb-ulasan-text {
+  font-size: 9pt;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.mb-aspek-table {
+  border-collapse: collapse;
+  margin-bottom: 4mm;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.mb-aspek-table th,
+.mb-aspek-table td {
+  border: 1px solid #000;
+  padding: 2mm;
+  vertical-align: top;
+}
+
+.laporan-ulasan-section .mb-aspek-table th,
+.laporan-ulasan-section .mb-aspek-table td,
+.maklum-balas-formal .mb-aspek-table th,
+.maklum-balas-formal .mb-aspek-table td {
+  line-height: 1.15;
+  padding: 1.2mm 1.5mm;
+}
+
+.mb-aspek-table th {
+  background: #e8e8e8;
+  font-size: 8.5pt;
+  font-weight: 700;
+  text-align: center;
+}
+
+.mb-th-note {
+  font-size: 7.5pt;
+  font-weight: 400;
+}
+
+.mb-col-no {
+  width: 6%;
+}
+
+.mb-col-aspek {
+  width: 28%;
+}
+
+.mb-col-dapatan {
+  width: 33%;
+}
+
+.mb-col-langkah {
+  width: 33%;
+}
+
+.mb-aspek-table td {
+  font-size: 9pt;
+}
+
+.mb-cell-dapatan {
+  max-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.mb-cell-langkah {
+  max-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.mb-tindak-lanjut {
+  font-size: 9.5pt;
+  margin: 4mm 0;
+}
+
+.mb-sig-table {
+  border-collapse: collapse;
+  margin-top: 6mm;
+  width: 100%;
+}
+
+.mb-sig-table td {
+  border: none;
+  padding: 2mm;
+  vertical-align: bottom;
+  width: 50%;
+}
+
+.mb-sig-label {
+  font-size: 9pt;
+  font-weight: 700;
+  margin: 0 0 10mm;
+}
+
+.mb-sig-line {
+  border-top: 1px dotted #000;
+  margin-bottom: 2mm;
+  width: 85%;
+}
+
+.mb-sig-name {
+  font-size: 9pt;
+  margin: 0;
+}
+
+.mb-footer {
+  border-top: 1px solid #ccc;
+  font-size: 8pt;
+  margin-top: 4mm;
+  padding-top: 2mm;
+  text-align: center;
+}
+
+/* Laporan cetak — jadual guru × aspek */
+.print-laporan-page {
+  max-width: 100%;
+}
+
+.print-laporan-stack {
+  overflow-x: auto;
+}
+
+.print-laporan-panel + .print-laporan-panel {
+  margin-top: 2.5rem;
+}
+
+.print-laporan-head {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-laporan-table thead {
+  display: table-header-group;
+}
+
+.print-laporan-eyebrow {
+  color: var(--muted);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.print-laporan-title {
+  font-family: var(--font-serif), Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-top: 0.25rem;
+}
+
+.print-laporan-meta {
+  color: var(--muted);
+  font-size: 0.75rem;
+  margin-top: 0.35rem;
+}
+
+.print-laporan-table {
+  border-collapse: collapse;
+  font-size: 0.72rem;
+  margin-top: 1rem;
+  min-width: 920px;
+}
+
+.print-laporan-th {
+  background: #d6e6f7;
+  border: 1px solid #94a3b8;
+  color: #1e3a5f;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.55rem 0.45rem;
+  text-align: center;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.print-laporan-th--nama {
+  min-width: 11rem;
+  text-align: left;
+}
+
+.print-laporan-th--pentadbir {
+  min-width: 8rem;
+}
+
+.print-laporan-th--pct {
+  min-width: 3.25rem;
+}
+
+.print-laporan-th--status {
+  min-width: 5.5rem;
+}
+
+.print-laporan-td {
+  border: 1px solid #cbd5e1;
+  padding: 0.45rem 0.4rem;
+  vertical-align: middle;
+}
+
+.print-laporan-td--nama {
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: left;
+}
+
+.print-laporan-td--pentadbir {
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
+.print-laporan-no {
+  color: var(--muted);
+  display: inline-block;
+  font-family: ui-monospace, monospace;
+  font-size: 0.6rem;
+  margin-right: 0.35rem;
+  min-width: 1.25rem;
+}
+
+.print-laporan-td--pct {
+  font-variant-numeric: tabular-nums;
+}
+
+.print-laporan-row--empty {
+  opacity: 0.55;
+}
+
+/* Skrin: header jadual melekat bila scroll (bukan cetak) */
+@media screen {
+  .print-laporan-stack {
+    overflow-x: visible;
+  }
+
+  .print-laporan-table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .print-laporan-th {
+    box-shadow: 0 2px 0 #94a3b8, 0 4px 12px -2px rgba(30, 58, 95, 0.12);
+    position: sticky;
+    top: var(--app-header-h);
+    z-index: 25;
+  }
+}
+
 @media print {
   @page {
     margin: 10mm;
@@ -349,7 +1687,8 @@
     padding: 0 !important;
   }
 
-  .no-print {
+  .no-print,
+  .mouse-follower {
     display: none !important;
   }
 
@@ -358,11 +1697,178 @@
   }
 
   .laporan-root,
-  .laporan-formal {
+  .laporan-formal,
+  .maklum-balas-formal {
     box-shadow: none !important;
     border: none !important;
     margin: 0 !important;
     max-width: none !important;
     padding: 0 !important;
+  }
+
+  .laporan-ulasan-section {
+    border-top: none;
+    break-before: page;
+    font-size: 9.5pt;
+    line-height: 1.1;
+    margin-top: 0;
+    page-break-before: always;
+    padding-top: 0;
+  }
+
+  .laporan-ulasan-section .mb-logo-header,
+  .maklum-balas-formal .mb-logo-header {
+    margin-bottom: 3mm;
+    padding-bottom: 2mm;
+  }
+
+  .laporan-ulasan-section .mb-logo-img,
+  .maklum-balas-formal .mb-logo-img {
+    height: 18mm;
+    max-width: 18mm;
+  }
+
+  .laporan-ulasan-section .mb-logo-school,
+  .maklum-balas-formal .mb-logo-school {
+    font-size: 10pt;
+    margin-bottom: 1mm;
+  }
+
+  .laporan-ulasan-section .mb-logo-title,
+  .maklum-balas-formal .mb-logo-title {
+    font-size: 10.5pt;
+  }
+
+  .laporan-ulasan-section .mb-aspek-table,
+  .maklum-balas-formal .mb-aspek-table {
+    margin-bottom: 2.5mm;
+  }
+
+  .laporan-ulasan-section .mb-aspek-table th,
+  .laporan-ulasan-section .mb-aspek-table td,
+  .maklum-balas-formal .mb-aspek-table th,
+  .maklum-balas-formal .mb-aspek-table td {
+    font-size: 8pt;
+    line-height: 1.08;
+    padding: 0.8mm 1.2mm;
+  }
+
+  .laporan-ulasan-section .mb-aspek-table th,
+  .maklum-balas-formal .mb-aspek-table th {
+    font-size: 7.5pt;
+  }
+
+  .laporan-ulasan-section .ulasan-text-wrap,
+  .laporan-ulasan-section .laporan-ulasan-text,
+  .laporan-ulasan-section .mb-cell-dapatan,
+  .laporan-ulasan-section .mb-cell-langkah,
+  .maklum-balas-formal .ulasan-text-wrap,
+  .maklum-balas-formal .mb-ulasan-text,
+  .maklum-balas-formal .mb-cell-dapatan,
+  .maklum-balas-formal .mb-cell-langkah {
+    line-height: 1.08;
+  }
+
+  .laporan-ulasan-section .laporan-ulasan-umum,
+  .maklum-balas-formal .mb-ulasan-umum {
+    margin-bottom: 2mm;
+    padding: 1.5mm;
+  }
+
+  .laporan-ulasan-section .mb-tindak-lanjut,
+  .maklum-balas-formal .mb-tindak-lanjut {
+    margin: 2mm 0;
+  }
+
+  .laporan-ulasan-section .laporan-formal-tandatangan td {
+    height: 14mm;
+    padding-top: 3mm;
+  }
+
+  .laporan-ulasan-section .lf-sig-label {
+    margin-bottom: 4mm;
+  }
+
+  .maklum-balas-formal {
+    font-size: 9.5pt;
+    line-height: 1.1;
+  }
+
+  .maklum-balas-formal .mb-sig-label {
+    margin-bottom: 6mm;
+  }
+
+  .maklum-balas-formal .mb-meta-table {
+    margin-bottom: 2.5mm;
+  }
+
+  .maklum-balas-formal .mb-meta-table td {
+    padding: 0.5mm 1.5mm;
+  }
+
+  .print-laporan-page ~ *,
+  body:has(.print-laporan-page) main {
+    max-width: none !important;
+  }
+
+  .print-laporan-stack {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+
+  .print-laporan-panel {
+    display: block !important;
+  }
+
+  .print-laporan-panel--new-page {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  .print-laporan-head {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .print-laporan-table thead {
+    display: table-header-group;
+  }
+
+  .print-laporan-table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .print-laporan-table {
+    border-collapse: collapse;
+    font-size: 7pt;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .print-laporan-th {
+    box-shadow: none;
+    position: static;
+  }
+
+  .print-laporan-th,
+  .print-laporan-td {
+    padding: 1.5mm 1mm;
+  }
+
+  .print-laporan-td--nama {
+    font-size: 6.5pt;
+  }
+}
+
+@page print-laporan {
+  margin: 8mm;
+  size: A4 landscape;
+}
+
+@media print {
+  .print-laporan-page {
+    page: print-laporan;
   }
 }

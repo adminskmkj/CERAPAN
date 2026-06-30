@@ -2,6 +2,7 @@ export type UserRole =
   | "jpn_admin"
   | "ppd_admin"
   | "school_admin"
+  | "ketua_panitia"
   | "cerap_officer";
 
 export interface UserProfile {
@@ -10,16 +11,7 @@ export interface UserProfile {
   role: UserRole;
   orgId: string | null;
   schoolId: string | null;
+  /** Panitia yang diselia (KP sahaja) */
+  panitia?: string | null;
   email?: string;
-}
-
-export const ROLE_LABELS: Record<UserRole, string> = {
-  jpn_admin: "Pentadbir JPN",
-  ppd_admin: "Pentadbir Utama",
-  school_admin: "Pentadbir Sekolah",
-  cerap_officer: "Pegawai Cerapan",
-};
-
-export function isAdminRole(role: UserRole): boolean {
-  return role === "jpn_admin" || role === "ppd_admin";
 }

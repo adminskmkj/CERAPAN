@@ -1,17 +1,29 @@
 "use client";
 
 import { useRef } from "react";
+import Link from "next/link";
 import type { CerapanRecord } from "@/lib/types/cerapan";
 import { SUB_STANDARDS } from "@/lib/scoring/standard4";
-import { formatTarikh } from "@/lib/utils";
-import { Download, Printer } from "lucide-react";
+import { jenisCerapanLabel } from "@/lib/cerapan/jenis";
+import { compactUlasanText, formatTarikh } from "@/lib/utils";
+import { Download, FileText, PlusCircle, Printer, BarChart3 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { MaklumBalasHeader } from "./MaklumBalasHeader";
 
 interface Props {
   record: CerapanRecord;
 }
 
 export function LaporanGuru({ record }: Props) {
+  const { isAdmin, isKetuaPanitia } = useAuth();
   const ref = useRef<HTMLDivElement>(null);
+
+  const dapatan = record.dapatanPencerap ?? {};
+  const langkah = record.langkahPenambahbaikan ?? {};
+  const adaUlasan =
+    Boolean(record.ulasanPencerapan?.trim()) ||
+    Object.values(dapatan).some((v) => v?.trim()) ||
+    Object.values(langkah).some((v) => v?.trim());
 
   async function handlePdf() {
     const el = ref.current;
@@ -24,6 +36,7 @@ export function LaporanGuru({ record }: Props) {
         image: { type: "jpeg", quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        pagebreak: { mode: ["css", "legacy"], before: ".laporan-ulasan-section" },
       })
       .from(el)
       .save();
@@ -31,7 +44,16 @@ export function LaporanGuru({ record }: Props) {
 
   return (
     <div>
-      <div className="no-print mb-4 flex flex-wrap gap-2">
+      <div className="no-print mb-4 flex flex-wrap items-center gap-2">
+        {(isAdmin || isKetuaPanitia) && (
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 rounded-full border border-stone bg-paper-card px-4 py-2 text-sm font-medium text-ink-2 shadow-soft transition hover:bg-stone-2"
+          >
+            <BarChart3 className="h-4 w-4" />
+            Dashboard
+          </Link>
+        )}
         <button
           type="button"
           onClick={() => window.print()}
@@ -48,6 +70,22 @@ export function LaporanGuru({ record }: Props) {
           <Download className="h-4 w-4" />
           Muat Turun PDF
         </button>
+        <Link
+          href={`/cerapan/${record.id}/maklum-balas`}
+          className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white shadow-soft transition hover:opacity-90"
+        >
+          <FileText className="h-4 w-4" />
+          Maklum Balas Pencerapan
+        </Link>
+        {isAdmin && (
+          <Link
+            href="/cerapan/baharu"
+            className="inline-flex items-center gap-2 rounded-full border border-accent bg-paper-card px-5 py-2.5 text-sm font-semibold text-accent shadow-soft transition hover:bg-accent-soft"
+          >
+            <PlusCircle className="h-4 w-4" />
+            PENCERAPAN BARU
+          </Link>
+        )}
       </div>
 
       <div ref={ref} className="laporan-formal">
@@ -55,7 +93,7 @@ export function LaporanGuru({ record }: Props) {
           <p className="laporan-formal-org">SKPM KUALITI@SEKOLAH</p>
           <h1 className="laporan-formal-title">TAPAK STANDARD 4</h1>
           <p className="laporan-formal-sub">
-            PEMBELAJARAN DAN PEMUDAHCARAAN (PdPc) — LAPORAN CERAPAN
+            PEMBELAJARAN DAN PEMUDAHCARAAN (PdPc) — LAPORAN PENCERAPAN
           </p>
         </div>
 
@@ -76,8 +114,10 @@ export function LaporanGuru({ record }: Props) {
             <tr>
               <td className="lf-label">Kelas</td>
               <td className="lf-value">{record.kelas}</td>
-              <td className="lf-label">Sesi Pengisian</td>
-              <td className="lf-value">{record.sesiPengisian}</td>
+              <td className="lf-label">Jenis Pencerapan</td>
+              <td className="lf-value">
+                {jenisCerapanLabel(record.sesiPengisian)}
+              </td>
             </tr>
             <tr>
               <td className="lf-label">Tarikh</td>
@@ -86,7 +126,7 @@ export function LaporanGuru({ record }: Props) {
               <td className="lf-value">{record.kalendarAkademik}</td>
             </tr>
             <tr>
-              <td className="lf-label">Pemerhati</td>
+              <td className="lf-label">Pencerap</td>
               <td className="lf-value" colSpan={3}>
                 {record.namaPemerhati || "-"}
               </td>
@@ -135,27 +175,93 @@ export function LaporanGuru({ record }: Props) {
           </tbody>
         </table>
 
-        <table className="laporan-formal-table laporan-formal-tandatangan">
-          <tbody>
-            <tr>
-              <td className="w-1/2 align-bottom">
-                <p className="lf-sig-label">Tandatangan Pemerhati</p>
-                <div className="lf-sig-line" />
-                <p className="lf-sig-name">{record.namaPemerhati || ""}</p>
-              </td>
-              <td className="w-1/2 align-bottom">
-                <p className="lf-sig-label">Tandatangan Guru Dicerap</p>
-                <div className="lf-sig-line" />
-                <p className="lf-sig-name">{record.namaGuru}</p>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div className="laporan-ulasan-section">
+          <MaklumBalasHeader namaSekolah={record.namaSekolah} />
 
-        <p className="laporan-formal-footer">
-          Borang dijana secara digital · ID: {record.id.slice(0, 8)} ·{" "}
-          {formatTarikh(record.updatedAt)}
-        </p>
+          {record.ulasanPencerapan?.trim() && (
+            <div className="laporan-ulasan-umum">
+              <p className="laporan-ulasan-label">Ulasan Pencerapan:</p>
+              <p className="laporan-ulasan-text ulasan-text-wrap">
+                {compactUlasanText(record.ulasanPencerapan)}
+              </p>
+            </div>
+          )}
+
+          <table className="mb-aspek-table">
+            <thead>
+              <tr>
+                <th className="mb-col-no">NO.</th>
+                <th className="mb-col-aspek">ASPEK</th>
+                <th className="mb-col-dapatan">DAPATAN PENCERAP</th>
+                <th className="mb-col-langkah">
+                  LANGKAH PENAMBAHBAIKAN
+                  <br />
+                  <span className="mb-th-note">(diisi oleh guru yang dicerap)</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {SUB_STANDARDS.map((sub, i) => (
+                <tr key={sub.code}>
+                  <td className="text-center">{i + 1}</td>
+                  <td className="mb-cell-aspek">
+                    <strong>{sub.code}</strong> {sub.title}
+                  </td>
+                  <td className="mb-cell-dapatan">
+                    {dapatan[sub.code]?.trim()
+                      ? compactUlasanText(dapatan[sub.code])
+                      : adaUlasan
+                        ? "—"
+                        : "\u00a0"}
+                  </td>
+                  <td className="mb-cell-langkah ulasan-text-wrap">
+                    {langkah[sub.code]?.trim()
+                      ? compactUlasanText(langkah[sub.code])
+                      : adaUlasan
+                        ? "—"
+                        : "\u00a0"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {!adaUlasan && (
+            <p className="laporan-ulasan-kosong">
+              Tiada ulasan direkodkan untuk pencerapan ini.
+            </p>
+          )}
+
+          <p className="mb-tindak-lanjut">
+            <strong>Cadangan tarikh pemantauan tindak lanjut</strong>
+            {" : "}
+            {record.tarikhTindakLanjut
+              ? formatTarikh(record.tarikhTindakLanjut)
+              : "........................................"}
+          </p>
+
+          <table className="laporan-formal-table laporan-formal-tandatangan">
+            <tbody>
+              <tr>
+                <td className="w-1/2 align-bottom">
+                  <p className="lf-sig-label">Tandatangan Pencerap</p>
+                  <div className="lf-sig-line" />
+                  <p className="lf-sig-name">{record.namaPemerhati || ""}</p>
+                </td>
+                <td className="w-1/2 align-bottom">
+                  <p className="lf-sig-label">Tandatangan Guru Dicerap</p>
+                  <div className="lf-sig-line" />
+                  <p className="lf-sig-name">{record.namaGuru}</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p className="laporan-formal-footer">
+            Borang dijana secara digital · ID: {record.id.slice(0, 8)} ·{" "}
+            {formatTarikh(record.updatedAt)}
+          </p>
+        </div>
       </div>
     </div>
   );

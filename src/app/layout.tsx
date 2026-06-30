@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Newsreader } from "next/font/google";
-import { AppHeader } from "@/components/layout/AppHeader";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { ClientProviders } from "@/components/layout/ClientProviders";
 import "./globals.css";
 
 const inter = Inter({
@@ -17,7 +16,7 @@ const serif = Newsreader({
 });
 
 export const metadata: Metadata = {
-  title: "CERAPAN — Standard 4 PdP",
+  title: "PENCERAPAN — Standard 4 PdP",
   description:
     "Aplikasi pemantauan guru Standard 4 Pembelajaran dan Pemudahcaraan (PdPc)",
 };
@@ -28,10 +27,11 @@ export default function RootLayout({
   return (
     <html lang="ms">
       <body className={`${inter.variable} ${serif.variable} font-sans antialiased`}>
-        <AuthProvider>
-          <AppHeader />
-          <main className="mx-auto max-w-6xl px-4 py-10 md:py-14">{children}</main>
-        </AuthProvider>
+        <ClientProviders>
+          <main className="relative z-10 mx-auto w-full max-w-7xl px-4 py-10 md:px-6 md:py-14">
+            {children}
+          </main>
+        </ClientProviders>
       </body>
     </html>
   );

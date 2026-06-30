@@ -5,6 +5,15 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/** Padatkan jarak baris — buang baris kosong berlebihan untuk cetakan */
+export function compactUlasanText(text: string): string {
+  return text
+    .replace(/\r\n/g, "\n")
+    .replace(/[ \t]+$/gm, "")
+    .replace(/\n{2,}/g, "\n")
+    .trim();
+}
+
 export function formatTarikh(iso: string): string {
   if (!iso) return "-";
   const d = new Date(iso);
