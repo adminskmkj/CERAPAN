@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { formatSupabaseError } from "@/lib/supabase/errors";
 import {
   calculateCerapan,
   inputToScore,
@@ -86,6 +87,25 @@ async function fetchScores(
   return scores;
 }
 
+/** `created_by` mesti rujuk `profiles.id` — elak FK gagal jika user Auth tiada profil. */
+export async function resolveCreatedBy(
+  supabase: SupabaseClient,
+  userId: string | null | undefined
+): Promise<string | null> {
+  if (!userId) return null;
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.id ?? null;
+}
+
+function throwIfError(error: unknown): never {
+  throw new Error(formatSupabaseError(error));
+}
+
 export async function listCerapanSupabase(
   supabase: SupabaseClient
 ): Promise<CerapanRecord[]> {
@@ -94,7 +114,7 @@ export async function listCerapanSupabase(
     .select("*")
     .order("created_at", { ascending: false });
 
-  if (error) throw error;
+  if (error) throwIfError(error);
   if (!data?.length) return [];
 
   const records: CerapanRecord[] = [];
@@ -115,7 +135,7 @@ export async function getCerapanSupabase(
     .eq("id", id)
     .maybeSingle();
 
-  if (error) throw error;
+  if (error) throwIfError(error);
   if (!data) return null;
 
   const scores = await fetchScores(supabase, id);
@@ -132,10 +152,11 @@ export async function saveCerapanSupabase(
 ): Promise<CerapanRecord> {
   const result = calculateCerapan(data.scores);
   const now = new Date().toISOString();
+  const createdBy = await resolveCreatedBy(supabase, userId);
 
   const payload = {
     school_id: schoolId ?? null,
-    created_by: userId,
+    created_by: createdBy,
     kod_sekolah: data.kodSekolah,
     nama_sekolah: data.namaSekolah,
     nama_guru: data.namaGuru,
@@ -162,15 +183,19 @@ export async function saveCerapanSupabase(
       .from("cerapan")
       .update(payload)
       .eq("id", cerapanId);
-    if (error) throw error;
-    await supabase.from("cerapan_scores").delete().eq("cerapan_id", cerapanId);
+    if (error) throwIfError(error);
+    const { error: delErr } = await supabase
+      .from("cerapan_scores")
+      .delete()
+      .eq("cerapan_id", cerapanId);
+    if (delErr) throwIfError(delErr);
   } else {
     const { data: inserted, error } = await supabase
       .from("cerapan")
       .insert(payload)
       .select()
       .single();
-    if (error) throw error;
+    if (error) throwIfError(error);
     cerapanId = inserted.id;
   }
 
@@ -183,7 +208,7 @@ export async function saveCerapanSupabase(
 
   if (scoreRows.length) {
     const { error } = await supabase.from("cerapan_scores").insert(scoreRows);
-    if (error) throw error;
+    if (error) throwIfError(error);
   }
 
   const saved = await getCerapanSupabase(supabase, cerapanId!);
@@ -196,7 +221,7 @@ export async function deleteCerapanSupabase(
   id: string
 ): Promise<void> {
   const { error } = await supabase.from("cerapan").delete().eq("id", id);
-  if (error) throw error;
+  if (error) throwIfError(error);
 }
 
 export function findDuplicateCerapan(

@@ -257,6 +257,7 @@ export function CerapanForm({ mode, initial }: Props) {
   }
 
   async function handleSave() {
+    if (!validateStep1()) return;
     setSaving(true);
     setError("");
     try {

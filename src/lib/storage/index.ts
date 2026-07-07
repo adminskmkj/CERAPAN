@@ -37,9 +37,16 @@ export async function saveCerapan(data: SaveCerapanInput): Promise<CerapanRecord
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
-    const json = await res.json();
+    let json: { error?: string; duplicateId?: string };
+    try {
+      json = await res.json();
+    } catch {
+      throw new Error(
+        res.ok ? "Gagal membaca respons server" : `Gagal menyimpan (${res.status})`
+      );
+    }
     if (!res.ok) throw new Error(json.error ?? "Gagal menyimpan");
-    return json;
+    return json as CerapanRecord;
   }
   return local.saveCerapan(data);
 }

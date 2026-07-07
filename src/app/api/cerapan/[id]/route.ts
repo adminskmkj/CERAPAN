@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireCerapanDelete } from "@/lib/auth/require-cerapan";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { formatSupabaseError } from "@/lib/supabase/errors";
 import {
   deleteCerapanSupabase,
   getCerapanSupabase,
@@ -28,10 +29,7 @@ export async function GET(
     }
     return NextResponse.json(record);
   } catch (e) {
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Ralat" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: formatSupabaseError(e) }, { status: 400 });
   }
 }
 
@@ -60,9 +58,6 @@ export async function DELETE(
     await deleteCerapanSupabase(admin, id);
     return NextResponse.json({ ok: true });
   } catch (e) {
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Ralat padam" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: formatSupabaseError(e) }, { status: 400 });
   }
 }

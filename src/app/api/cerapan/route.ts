@@ -3,6 +3,7 @@ import { isKendiri, isPencerapanAdmin } from "@/lib/cerapan/jenis";
 import { KOD_SEKOLAH, NAMA_SEKOLAH } from "@/lib/data/sekolah";
 import { requireCerapanWriter } from "@/lib/auth/require-cerapan";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { formatSupabaseError } from "@/lib/supabase/errors";
 import {
   findDuplicateCerapan,
   getCerapanSupabase,
@@ -26,10 +27,7 @@ export async function GET() {
     const records = await listCerapanSupabase(admin);
     return NextResponse.json(records);
   } catch (e) {
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Ralat" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: formatSupabaseError(e) }, { status: 400 });
   }
 }
 
@@ -91,9 +89,13 @@ export async function POST(request: Request) {
   );
   if (duplicate) {
     const pencerap = namaPemerhati ? ` (${namaPemerhati})` : "";
+    const editHint = isKendiri(sesiPengisian)
+      ? " Pergi ke Rekod → Laporan Individu untuk ubah rekod sedia ada."
+      : "";
     return NextResponse.json(
       {
-        error: `Rekod ${sesiPengisian} untuk ${body.namaGuru}${pencerap} sudah wujud.`,
+        error: `Rekod ${sesiPengisian} untuk ${body.namaGuru}${pencerap} sudah wujud.${editHint}`,
+        duplicateId: duplicate.id,
       },
       { status: 409 }
     );
@@ -126,9 +128,6 @@ export async function POST(request: Request) {
     return NextResponse.json(record);
   } catch (e) {
     console.error("[POST /api/cerapan]", e);
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Ralat simpan" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: formatSupabaseError(e) }, { status: 400 });
   }
 }
