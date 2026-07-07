@@ -1,4 +1,5 @@
 import { isCloudEnabled } from "@/lib/supabase/cloud";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { CerapanRecord } from "@/lib/types/cerapan";
 import type { InputValue } from "@/lib/scoring/standard4";
 import * as local from "./cerapan-store";
@@ -23,7 +24,20 @@ export async function listCerapan(): Promise<CerapanRecord[]> {
 
 export async function getCerapan(id: string): Promise<CerapanRecord | null> {
   if (await isCloudEnabled()) {
-    const res = await fetch(`/api/cerapan/${id}`);
+    if (typeof window === "undefined") {
+      const admin = createAdminClient();
+      if (admin) {
+        try {
+          return await remote.getCerapanSupabase(admin, id);
+        } catch {
+          /* fallback to HTTP below */
+        }
+      }
+    }
+    const res = await fetch(`/api/cerapan/${id}`, {
+      cache: "no-store",
+      credentials: "include",
+    });
     if (res.ok) return res.json();
     if (res.status === 404) return null;
   }

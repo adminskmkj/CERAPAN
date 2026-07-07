@@ -33,6 +33,7 @@ import {
 } from "@/lib/storage/pentadbir-store";
 import {
   NAMA_KELAS,
+  TAHUN_SESI_PETANG,
   formatKelas,
   getTahunBySesi,
   KOD_SEKOLAH,
@@ -78,6 +79,49 @@ function namaPencerapKetuaPanitia(
   return "";
 }
 
+function sesiGuruFromTahun(tahun: number): SesiGuru {
+  return (TAHUN_SESI_PETANG as readonly number[]).includes(tahun)
+    ? "PETANG"
+    : "PAGI";
+}
+
+function buildFormFromInitial(
+  mode: CerapanFormMode,
+  initial?: CerapanRecord
+): FormState {
+  const base: FormState = {
+    ...emptyForm(),
+    kodSekolah: initial?.kodSekolah ?? KOD_SEKOLAH,
+    namaSekolah: initial?.namaSekolah ?? NAMA_SEKOLAH,
+    namaGuru: initial?.namaGuru ?? "",
+    mataPelajaran: initial?.mataPelajaran ?? "",
+    kelas: initial?.kelas ?? "",
+    sesiPengisian:
+      mode === "kendiri"
+        ? JENIS_KENDIRI
+        : (initial?.sesiPengisian ?? JENIS_PENCERAPAN_1),
+    tarikh: initial?.tarikh ?? new Date().toISOString().slice(0, 10),
+    kalendarAkademik: initial?.kalendarAkademik ?? KALENDAR_AKADEMIK[0],
+    namaPemerhati: initial?.namaPemerhati ?? "",
+    scores: initial?.scores ?? {},
+    dapatanPencerap: initial?.dapatanPencerap ?? {},
+    langkahPenambahbaikan: initial?.langkahPenambahbaikan ?? {},
+    ulasanPencerapan: initial?.ulasanPencerapan ?? "",
+    tarikhTindakLanjut: initial?.tarikhTindakLanjut ?? "",
+  };
+
+  if (initial?.kelas) {
+    const parsed = parseKelas(initial.kelas);
+    if (parsed) {
+      base.tahunKelas = String(parsed.tahun);
+      base.namaKelas = parsed.namaKelas;
+      base.sesiGuru = sesiGuruFromTahun(parsed.tahun);
+    }
+  }
+
+  return base;
+}
+
 const emptyForm = (): FormState => ({
   kodSekolah: KOD_SEKOLAH,
   namaSekolah: NAMA_SEKOLAH,
@@ -107,6 +151,7 @@ interface Props {
 
 export function CerapanForm({ mode, initial }: Props) {
   const router = useRouter();
+  const isEdit = Boolean(initial?.id);
   const {
     canWriteCerapan,
     canModifyCerapanRecord,
@@ -114,10 +159,12 @@ export function CerapanForm({ mode, initial }: Props) {
     fullName,
     isKetuaPanitia,
     isAdmin,
+    loading: authLoading,
   } = useAuth();
   const isKpStaff = isKetuaPanitia && !isAdmin;
   const editReadOnly =
-    Boolean(initial?.id) &&
+    isEdit &&
+    !authLoading &&
     Boolean(initial?.sesiPengisian) &&
     !canModifyCerapanRecord({
       sesiPengisian: initial!.sesiPengisian,
@@ -125,25 +172,10 @@ export function CerapanForm({ mode, initial }: Props) {
       panitiaKp: initial!.panitiaKp,
       mataPelajaran: initial!.mataPelajaran ?? "",
     });
-  const [step, setStep] = useState(1);
-  const [form, setForm] = useState<FormState>(() => {
-    const base = {
-      ...emptyForm(),
-      sesiPengisian:
-        mode === "kendiri"
-          ? JENIS_KENDIRI
-          : (initial?.sesiPengisian ?? JENIS_PENCERAPAN_1),
-      ...initial,
-    };
-    if (initial?.kelas) {
-      const parsed = parseKelas(initial.kelas);
-      if (parsed) {
-        base.tahunKelas = String(parsed.tahun);
-        base.namaKelas = parsed.namaKelas;
-      }
-    }
-    return base;
-  });
+  const [step, setStep] = useState(isEdit ? 2 : 1);
+  const [form, setForm] = useState<FormState>(() =>
+    buildFormFromInitial(mode, initial)
+  );
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [senaraiGuru, setSenaraiGuru] = useState<GuruOption[]>([]);
@@ -321,6 +353,22 @@ export function CerapanForm({ mode, initial }: Props) {
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
+        </div>
+      )}
+
+      {isEdit && authLoading && (
+        <div className="rounded-xl border border-stone bg-stone-2/60 px-4 py-3 text-sm text-muted">
+          Memuatkan akses ubah…
+        </div>
+      )}
+
+      {isEdit && !authLoading && !editReadOnly && (
+        <div className="rounded-xl border border-accent/30 bg-accent-soft/50 px-4 py-3 text-sm text-ink">
+          <p className="font-semibold text-accent">Mod ubah rekod</p>
+          <p className="mt-1 text-ink-2">
+            Kemas kini maklumat atau markah di bawah. Langkah 1 untuk maklumat
+            asas; langkah 2–3 untuk penskoran dan simpan.
+          </p>
         </div>
       )}
 
@@ -624,11 +672,20 @@ export function CerapanForm({ mode, initial }: Props) {
             </label>
           </div>
 
-          <div className="mt-8 flex justify-end">
+          <div className="mt-8 flex flex-wrap justify-between gap-3">
+            {isEdit && (
+              <button
+                type="button"
+                onClick={() => setStep(2)}
+                className="rounded-full border border-stone px-5 py-2.5 text-sm font-medium text-ink-2 transition hover:bg-stone-2"
+              >
+                Langkau ke Penskoran →
+              </button>
+            )}
             <button
               type="button"
               onClick={() => validateStep1() && setStep(2)}
-              className="rounded-full bg-accent px-6 py-2.5 text-sm font-semibold text-white shadow-soft transition hover:opacity-90"
+              className="ml-auto rounded-full bg-accent px-6 py-2.5 text-sm font-semibold text-white shadow-soft transition hover:opacity-90"
             >
               Seterusnya: Penskoran →
             </button>
@@ -859,7 +916,11 @@ export function CerapanForm({ mode, initial }: Props) {
               disabled={saving || Boolean(editReadOnly)}
               className="rounded-full bg-accent px-6 py-2.5 text-sm font-semibold text-white shadow-soft transition hover:opacity-90 disabled:opacity-60"
             >
-              {saving ? "Menyimpan…" : "Simpan & Lihat Laporan"}
+              {saving
+                ? "Menyimpan…"
+                : isEdit
+                  ? "Simpan Perubahan"
+                  : "Simpan & Lihat Laporan"}
             </button>
           </div>
         </section>
