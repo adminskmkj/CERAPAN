@@ -13,6 +13,7 @@ import {
   normalizeCerapanRecord,
   normalizeNamaGuru,
 } from "@/lib/cerapan/jenis";
+import { isTestCerapanRecord } from "@/lib/cerapan/test-data";
 import type { CerapanRecord } from "@/lib/types/cerapan";
 
 interface DbCerapan {
@@ -119,6 +120,7 @@ export async function listCerapanSupabase(
 
   const records: CerapanRecord[] = [];
   for (const row of data as DbCerapan[]) {
+    if (isTestCerapanRecord({ namaGuru: row.nama_guru })) continue;
     const scores = await fetchScores(supabase, row.id);
     records.push(toRecord(row, scores));
   }
@@ -137,6 +139,9 @@ export async function getCerapanSupabase(
 
   if (error) throwIfError(error);
   if (!data) return null;
+  if (isTestCerapanRecord({ namaGuru: (data as DbCerapan).nama_guru })) {
+    return null;
+  }
 
   const scores = await fetchScores(supabase, id);
   return toRecord(data as DbCerapan, scores);

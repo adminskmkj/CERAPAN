@@ -2,6 +2,7 @@ import {
   effectiveSesiPengisian,
   namesReferToSameGuru,
 } from "@/lib/cerapan/jenis";
+import { isTestCerapanRecord } from "@/lib/cerapan/test-data";
 import {
   getDefaultGuruBySesi,
 } from "@/lib/data/senarai-smkjs";
@@ -119,7 +120,9 @@ export function buildPrintLaporanRows(
   jenis: string
 ): PrintLaporanRow[] {
   const filtered = records.filter(
-    (r) => effectiveSesiPengisian(r.sesiPengisian) === jenis
+    (r) =>
+      effectiveSesiPengisian(r.sesiPengisian) === jenis &&
+      !isTestCerapanRecord(r)
   );
   const usedIds = new Set<string>();
   const rows: PrintLaporanRow[] = [];

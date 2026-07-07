@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isKendiri, isPencerapanAdmin } from "@/lib/cerapan/jenis";
+import { isTestNamaGuru } from "@/lib/cerapan/test-data";
 import { KOD_SEKOLAH, NAMA_SEKOLAH } from "@/lib/data/sekolah";
 import { requireCerapanWriter } from "@/lib/auth/require-cerapan";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -34,6 +35,13 @@ export async function GET() {
 export async function POST(request: Request) {
   const body = await request.json();
   const sesiPengisian = String(body.sesiPengisian ?? "");
+
+  if (isTestNamaGuru(String(body.namaGuru ?? ""))) {
+    return NextResponse.json(
+      { error: "Nama guru ujian tidak dibenarkan." },
+      { status: 400 }
+    );
+  }
 
   let userId: string | null = null;
   let panitiaKp: string | null = body.panitiaKp
