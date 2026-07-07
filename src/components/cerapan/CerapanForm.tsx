@@ -6,9 +6,9 @@ import { StepIndicator } from "./StepIndicator";
 import { ScoringMatrix } from "./ScoringMatrix";
 import {
   JENIS_KENDIRI,
-  JENIS_KETUA_PANITIA,
   JENIS_PENCERAPAN_1,
   JENIS_PENCERAPAN_ADMIN,
+  formatPencerapKp,
 } from "@/lib/cerapan/jenis";
 import { useAuth } from "@/contexts/AuthContext";
 import { panitiaMatchesMataPelajaran, mataPelajaranDariPanitiaKp } from "@/lib/data/panitia";
@@ -98,7 +98,7 @@ const emptyForm = (): FormState => ({
   scores: {},
 });
 
-export type CerapanFormMode = "kendiri" | "pencerapan" | "ketua-panitia";
+export type CerapanFormMode = "kendiri" | "pencerapan";
 
 interface Props {
   mode: CerapanFormMode;
@@ -107,10 +107,17 @@ interface Props {
 
 export function CerapanForm({ mode, initial }: Props) {
   const router = useRouter();
-  const { canWriteCerapan, canModifyCerapanRecord, panitia, fullName } =
-    useAuth();
+  const {
+    canWriteCerapan,
+    canModifyCerapanRecord,
+    panitia,
+    fullName,
+    isKetuaPanitia,
+    isAdmin,
+  } = useAuth();
+  const isKpStaff = isKetuaPanitia && !isAdmin;
   const kpReadOnly =
-    mode === "ketua-panitia" &&
+    isKpStaff &&
     Boolean(initial?.id) &&
     initial?.sesiPengisian &&
     !canModifyCerapanRecord({
@@ -126,9 +133,7 @@ export function CerapanForm({ mode, initial }: Props) {
       sesiPengisian:
         mode === "kendiri"
           ? JENIS_KENDIRI
-          : mode === "ketua-panitia"
-            ? JENIS_KETUA_PANITIA
-            : (initial?.sesiPengisian ?? JENIS_PENCERAPAN_1),
+          : (initial?.sesiPengisian ?? JENIS_PENCERAPAN_1),
       ...initial,
     };
     if (initial?.kelas) {
@@ -160,19 +165,21 @@ export function CerapanForm({ mode, initial }: Props) {
   }, []);
 
   useEffect(() => {
-    if (mode !== "ketua-panitia") return;
+    if (!isKpStaff) return;
     const mp = mataPelajaranDariPanitiaKp(panitia);
     const kpName = namaPencerapKetuaPanitia(fullName, panitia);
     const isEdit = Boolean(initial?.id);
     setForm((f) => ({
       ...f,
       ...(mp && !isEdit ? { mataPelajaran: mp } : {}),
-      ...(kpName && !(isEdit && initial?.namaPemerhati)
-        ? { namaPemerhati: kpName }
+      ...(kpName &&
+      panitia &&
+      !(isEdit && initial?.namaPemerhati)
+        ? { namaPemerhati: formatPencerapKp(kpName, panitia) }
         : {}),
     }));
     if (kpName) setPentadbirMode("pilih");
-  }, [mode, fullName, panitia, initial?.id, initial?.namaPemerhati]);
+  }, [isKpStaff, fullName, panitia, initial?.id, initial?.namaPemerhati]);
 
   useEffect(() => {
     getSenaraiGuruOptions(KOD_SEKOLAH, form.sesiGuru).then(setSenaraiGuru);
@@ -183,7 +190,7 @@ export function CerapanForm({ mode, initial }: Props) {
   }
 
   function getMataPelajaranAkhir() {
-    if (mode === "ketua-panitia") {
+    if (isKpStaff) {
       const locked = mataPelajaranDariPanitiaKp(panitia);
       if (locked) return locked;
     }
@@ -195,9 +202,9 @@ export function CerapanForm({ mode, initial }: Props) {
   }
 
   function getNamaPentadbirAkhir() {
-    if (mode === "ketua-panitia") {
+    if (isKpStaff) {
       const locked = namaPencerapKetuaPanitia(fullName, panitia);
-      if (locked) return locked;
+      if (locked && panitia) return formatPencerapKp(locked, panitia);
     }
     return pentadbirMode === "baharu"
       ? pentadbirBaharu.trim()
@@ -207,7 +214,7 @@ export function CerapanForm({ mode, initial }: Props) {
   function validateStep1() {
     if (!getMataPelajaranAkhir()) {
       setError(
-        mode === "ketua-panitia"
+        isKpStaff
           ? "Profil KP tiada panitia — mata pelajaran tidak boleh ditetapkan."
           : "Sila lengkapkan mata pelajaran."
       );
@@ -229,7 +236,7 @@ export function CerapanForm({ mode, initial }: Props) {
       setError("Sila pilih atau masukkan nama pencerap.");
       return false;
     }
-    if (mode === "ketua-panitia") {
+    if (isKpStaff) {
       if (!panitia?.trim()) {
         setError(
           "Profil ketua panitia tiada panitia. Hubungi pentadbir untuk set panitia pada profil anda."
@@ -268,8 +275,8 @@ export function CerapanForm({ mode, initial }: Props) {
         })
       ) {
         throw new Error(
-          initial?.id && mode === "ketua-panitia"
-            ? "Anda hanya boleh mengubah markah rekod KP yang anda sendiri buat."
+          initial?.id && isKpStaff
+            ? "Anda hanya boleh mengubah markah rekod yang anda sendiri buat."
             : "Anda tidak dibenarkan menyimpan jenis pencerapan ini."
         );
       }
@@ -290,8 +297,7 @@ export function CerapanForm({ mode, initial }: Props) {
         tarikh: form.tarikh,
         kalendarAkademik: form.kalendarAkademik,
         namaPemerhati: namaPentadbir,
-        panitiaKp:
-          mode === "ketua-panitia" ? panitia?.trim() ?? undefined : undefined,
+        panitiaKp: isKpStaff ? panitia?.trim() ?? undefined : undefined,
         dapatanPencerap: form.dapatanPencerap,
         langkahPenambahbaikan: form.langkahPenambahbaikan,
         ulasanPencerapan: form.ulasanPencerapan.trim() || undefined,
@@ -332,9 +338,9 @@ export function CerapanForm({ mode, initial }: Props) {
           <p className="mt-1 text-sm text-muted">
             {mode === "kendiri"
               ? "Guru mengisi pencerapan kendiri — satu rekod kendiri setiap guru."
-              : mode === "ketua-panitia"
-                ? "Ketua panitia boleh cerap guru dalam panitia sendiri. KP boleh ubah markah rekod yang dibuat oleh KP itu sahaja — bukan rekod pentadbir atau KP panitia lain."
-                : "Pentadbir mengisi pencerapan — satu rekod setiap pencerapan pertama & kedua."}
+              : isKpStaff
+                ? "Ketua panitia isi dalam Pencerapan 1 atau 2 — pilih pusingan, nama pencerap diisi automatik. Guru sama boleh ada beberapa rekod jika pencerap berbeza (cth. GB & KP)."
+                : "Pentadbir mengisi pencerapan — pilih Pencerapan 1 atau 2. Guru sama boleh ada lebih daripada satu rekod jika pencerap berbeza."}
           </p>
           <div className="mt-4 rounded-xl border border-stone bg-stone-2/60 px-4 py-3 text-sm">
             <p className="font-semibold text-ink">{NAMA_SEKOLAH}</p>
@@ -344,7 +350,7 @@ export function CerapanForm({ mode, initial }: Props) {
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            {mode === "ketua-panitia" && (
+            {isKpStaff && (
               <label className="block text-sm sm:col-span-2">
                 <span className="font-medium text-ink-2">Panitia anda</span>
                 <input
@@ -365,7 +371,7 @@ export function CerapanForm({ mode, initial }: Props) {
                 </p>
               </label>
             )}
-            {mode === "ketua-panitia" ? (
+            {isKpStaff ? (
               <label className="block text-sm sm:col-span-2">
                 <span className="font-medium text-ink-2">
                   Mata Pelajaran PdP *
@@ -505,16 +511,20 @@ export function CerapanForm({ mode, initial }: Props) {
               </div>
             </div>
 
-            {mode !== "kendiri" && mode === "ketua-panitia" && (
+            {mode !== "kendiri" && isKpStaff && (
               <label className="block text-sm sm:col-span-2">
                 <span className="font-medium text-ink-2">
-                  Nama Pencerap (Ketua Panitia) *
+                  Nama Pencerap *
                 </span>
                 <input
                   type="text"
                   readOnly
                   value={
-                    namaPencerapKetuaPanitia(fullName, panitia) ||
+                    (panitia &&
+                      formatPencerapKp(
+                        namaPencerapKetuaPanitia(fullName, panitia),
+                        panitia
+                      )) ||
                     form.namaPemerhati ||
                     "— muatkan profil KP —"
                   }
@@ -527,7 +537,7 @@ export function CerapanForm({ mode, initial }: Props) {
               </label>
             )}
 
-            {mode !== "kendiri" && mode !== "ketua-panitia" && (
+            {mode !== "kendiri" && !isKpStaff && (
               <div className="block text-sm sm:col-span-2">
                 <span className="font-medium text-ink-2">
                   Nama Pencerap *
@@ -580,13 +590,6 @@ export function CerapanForm({ mode, initial }: Props) {
                   value={JENIS_KENDIRI}
                   className={cn(inputCls, "bg-stone-2 text-ink-2")}
                 />
-              ) : mode === "ketua-panitia" ? (
-                <input
-                  type="text"
-                  readOnly
-                  value={JENIS_KETUA_PANITIA}
-                  className={cn(inputCls, "bg-stone-2 text-ink-2")}
-                />
               ) : (
                 <select
                   value={form.sesiPengisian}
@@ -636,8 +639,8 @@ export function CerapanForm({ mode, initial }: Props) {
         <section>
           <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             Tandakan skor dan tulis dapatan pencerapan untuk setiap aspek pada
-            halaman yang sama (sama untuk pentadbir & ketua panitia — bezakan
-            jenis laporan sahaja).
+            halaman yang sama — pentadbir & ketua panitia guna borang yang sama;
+            bezakan pusingan (P1/P2) dan nama pencerap.
           </div>
           <ScoringMatrix
             scores={form.scores}

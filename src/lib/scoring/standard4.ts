@@ -262,8 +262,10 @@ export const SESI_PENGISIAN = [
   "KENDIRI",
   "PENCERAPAN PERTAMA",
   "PENCERAPAN KEDUA",
-  "PENCERAPAN KETUA PANITIA",
 ] as const;
+
+/** Rekod lama sebelum KP digabung ke P1/P2 */
+export const LEGACY_SESI_KETUA_PANITIA = "PENCERAPAN KETUA PANITIA" as const;
 
 export type JenisCerapan = (typeof SESI_PENGISIAN)[number];
 

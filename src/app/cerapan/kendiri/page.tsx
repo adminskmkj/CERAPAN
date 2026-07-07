@@ -21,7 +21,7 @@ export default function CerapanKendiriPage() {
             <strong>guru isi sendiri</strong> (tanpa log masuk).
           </li>
           <li>
-            Markah Pencerapan 1, 2 &amp; Ketua Panitia — semak di{" "}
+            Markah Pencerapan 1 &amp; 2 (pentadbir / KP) — semak di{" "}
             <strong>Rekod → Laporan Individu</strong>.
           </li>
         </ul>

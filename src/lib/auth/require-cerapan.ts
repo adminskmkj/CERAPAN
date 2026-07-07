@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import {
   JENIS_PENCERAPAN_1,
   JENIS_PENCERAPAN_2,
-  isKetuaPanitiaCerapan,
+  effectiveSesiPengisian,
+  isPencerapanAdmin,
 } from "@/lib/cerapan/jenis";
 import {
   canCreateCerapan,
@@ -52,11 +53,13 @@ export async function requireCerapanWriter(
       panitiaKp: existing.panitiaKp,
       mataPelajaran: existing.mataPelajaran,
     };
-    if (!canModifyCerapan(session.appRole, existing.sesiPengisian, {
-      ...ctxBase,
-      record: recordCtx,
-      isUpdate: true,
-    })) {
+    if (
+      !canModifyCerapan(session.appRole, existing.sesiPengisian, {
+        ...ctxBase,
+        record: recordCtx,
+        isUpdate: true,
+      })
+    ) {
       return forbidden(session, existing.sesiPengisian, true);
     }
     if (
@@ -79,7 +82,7 @@ export async function requireCerapanWriter(
 
   if (
     session.appRole === "ketua_panitia" &&
-    isKetuaPanitiaCerapan(sesiPengisian)
+    isPencerapanAdmin(sesiPengisian)
   ) {
     const panitia = session.panitia?.trim();
     if (!panitia) {
@@ -98,7 +101,7 @@ export async function requireCerapanWriter(
       return {
         error: NextResponse.json(
           {
-            error: `Mata pelajaran PdP mesti dalam panitia anda (${panitia}). KP lain tidak boleh ubah markah panitia lain.`,
+            error: `Mata pelajaran PdP mesti dalam panitia anda (${panitia}). KP lain tidak boleh cerap panitia lain.`,
           },
           { status: 403 }
         ),
@@ -134,7 +137,7 @@ export async function requireCerapanDelete(
       error: NextResponse.json(
         {
           error:
-            "Anda tidak boleh padam atau ubah markah pencerapan ketua panitia lain. Hanya pentadbir atau KP yang mencipta rekod panitia sendiri.",
+            "Anda tidak boleh padam rekod ini. KP hanya boleh padam rekod yang dibuat sendiri; pentadbir boleh padam semua.",
         },
         { status: 403 }
       ),
@@ -148,18 +151,16 @@ function forbidden(
   sesi: string,
   isUpdate: boolean
 ): CerapanAuthResult {
+  const effective = effectiveSesiPengisian(sesi);
   const isPentadbirRecord =
-    sesi === JENIS_PENCERAPAN_1 || sesi === JENIS_PENCERAPAN_2;
+    effective === JENIS_PENCERAPAN_1 || effective === JENIS_PENCERAPAN_2;
   let msg = "Akses ditolak untuk jenis pencerapan ini.";
-  if (session.appRole === "ketua_panitia" && isPentadbirRecord) {
+  if (session.appRole === "ketua_panitia" && isPentadbirRecord && isUpdate) {
     msg =
-      "Ketua Panitia tidak boleh mengubah markah pencerapan pentadbir (Pencerapan 1 & 2).";
-  } else if (session.appRole === "ketua_panitia" && isUpdate) {
+      "Ketua Panitia hanya boleh mengubah markah rekod yang dibuat sendiri. Rekod pentadbir atau KP lain tidak boleh diubah.";
+  } else if (session.appRole === "ketua_panitia" && isPentadbirRecord) {
     msg =
-      "Ketua Panitia hanya boleh mengubah markah rekod yang dibuat oleh KP itu sendiri. Rekod pentadbir atau KP panitia lain tidak boleh diubah.";
-  } else if (session.appRole === "ketua_panitia") {
-    msg =
-      "Pencerapan ini bukan dalam panitia anda atau rekod sudah wujud untuk guru tersebut dalam panitia anda.";
+      "Pencerapan ini bukan dalam panitia anda, atau rekod untuk guru & pencerap ini sudah wujud.";
   }
 
   return { error: NextResponse.json({ error: msg }, { status: 403 }) };

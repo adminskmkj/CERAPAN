@@ -58,7 +58,7 @@ export default function LaporanPenuhPage() {
     <div className="print-laporan-page space-y-5">
       <div className="no-print flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-stone bg-paper-card px-4 py-3 shadow-soft">
         <p className="text-sm text-muted">
-          Jadual guru · nama pentadbir · peratus aspek 4.1–4.5 · status taraf PdP
+          Jadual guru · nama pencerap · peratus aspek 4.1–4.5 · status taraf PdP
         </p>
         <button
           type="button"

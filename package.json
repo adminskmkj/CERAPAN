@@ -11,7 +11,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "create-kp-users": "node scripts/create-kp-users.mjs"
+    "create-kp-users": "node scripts/create-kp-users.mjs",
+    "reset-kp-password": "node scripts/reset-kp-password.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

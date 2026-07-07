@@ -1,4 +1,7 @@
-import { namesReferToSameGuru } from "@/lib/cerapan/jenis";
+import {
+  effectiveSesiPengisian,
+  namesReferToSameGuru,
+} from "@/lib/cerapan/jenis";
 import {
   getDefaultGuruBySesi,
 } from "@/lib/data/senarai-smkjs";
@@ -111,35 +114,31 @@ function emptyRow(nama: string): PrintLaporanRow {
   };
 }
 
-function findRecordForGuru(
-  records: CerapanRecord[],
-  guruNama: string,
-  usedIds: Set<string>
-): CerapanRecord | undefined {
-  for (const record of records) {
-    if (usedIds.has(record.id)) continue;
-    if (namesReferToSameGuru(record.namaGuru, guruNama)) {
-      return record;
-    }
-  }
-  return undefined;
-}
-
 export function buildPrintLaporanRows(
   records: CerapanRecord[],
   jenis: string
 ): PrintLaporanRow[] {
-  const filtered = records.filter((r) => r.sesiPengisian === jenis);
+  const filtered = records.filter(
+    (r) => effectiveSesiPengisian(r.sesiPengisian) === jenis
+  );
   const usedIds = new Set<string>();
   const rows: PrintLaporanRow[] = [];
 
   for (const nama of getAllGuruNames()) {
-    const record = findRecordForGuru(filtered, nama, usedIds);
-    if (record) {
+    const matches = filtered
+      .filter(
+        (r) => !usedIds.has(r.id) && namesReferToSameGuru(r.namaGuru, nama)
+      )
+      .sort((a, b) => a.namaGuru.localeCompare(b.namaGuru, "ms"));
+
+    if (matches.length === 0) {
+      rows.push(emptyRow(nama));
+      continue;
+    }
+
+    for (const record of matches) {
       usedIds.add(record.id);
       rows.push(rowFromRecord(record, nama));
-    } else {
-      rows.push(emptyRow(nama));
     }
   }
 

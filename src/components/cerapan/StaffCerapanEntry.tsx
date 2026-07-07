@@ -4,34 +4,30 @@ import { CerapanForm } from "@/components/cerapan/CerapanForm";
 import { useAuth } from "@/contexts/AuthContext";
 
 /**
- * Satu borang penskoran untuk pentadbir (P1/P2) dan KP (jenis Ketua Panitia).
- * Markah masuk rekod yang sama mengikut jenis — bukan aliran “tambah baru” berasingan.
+ * Borang penskoran pentadbir & ketua panitia — sama P1/P2, bezakan nama pencerap.
  */
 export function StaffCerapanEntry() {
-  const { isAdmin, isKetuaPanitia, loading } = useAuth();
+  const { isKetuaPanitia, isAdmin, loading } = useAuth();
 
   if (loading) {
     return <p className="text-muted">Memuatkan…</p>;
   }
 
-  const mode =
-    isKetuaPanitia && !isAdmin ? "ketua-panitia" : "pencerapan";
+  const isKp = isKetuaPanitia && !isAdmin;
 
   return (
     <div>
       <p className="eyebrow">Tapak Standard 4</p>
       <h1 className="mt-2 text-3xl md:text-4xl">
-        {mode === "ketua-panitia"
-          ? "Pencerapan Ketua Panitia"
-          : "Pencerapan Pentadbir"}
+        {isKp ? "Pencerapan Ketua Panitia" : "Pencerapan Pentadbir"}
       </h1>
       <p className="mt-1 text-sm text-muted">
-        {mode === "ketua-panitia"
-          ? "Borang & markah sama seperti pentadbir — hanya jenis laporan Ketua Panitia. Boleh wujud bersama Pencerapan 1 & 2 untuk guru yang sama."
-          : "Pencerapan pertama & kedua — pentadbir. Guru yang sama boleh juga dicerap ketua panitia (jenis berasingan)."}
+        {isKp
+          ? "Pilih Pencerapan 1 atau 2 — KP cerap guru dalam panitia sendiri. Guru sama boleh ada beberapa laporan jika pencerap berbeza (cth. GB & KP pada pusingan sama)."
+          : "Pilih Pencerapan 1 atau 2. Guru sama boleh ada lebih daripada satu rekod jika pencerap berbeza."}
       </p>
       <div className="mt-8">
-        <CerapanForm mode={mode} />
+        <CerapanForm mode="pencerapan" />
       </div>
     </div>
   );

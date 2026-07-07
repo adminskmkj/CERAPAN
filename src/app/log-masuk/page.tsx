@@ -66,9 +66,9 @@ function LogMasukForm() {
         </div>
         <h1 className="mt-5 text-2xl">Log Masuk</h1>
         <p className="mt-1 text-sm text-muted">
-          Pentadbir: pencerapan 1 & 2 (semua rekod). Ketua Panitia: pencerapan
-          panitia sahaja — tidak ubah markah pentadbir. Guru: isi kendiri & lihat
-          laporan tanpa log masuk.
+          Pentadbir: pencerapan 1 & 2 (semua rekod). Ketua Panitia: isi pencerapan
+          1 atau 2 dalam panitia sendiri — tidak ubah rekod pentadbir. Guru: isi
+          kendiri & lihat laporan tanpa log masuk.
         </p>
 
         {error && (

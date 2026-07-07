@@ -1,4 +1,8 @@
-import { JENIS_ORDER, jenisCerapanLabel } from "@/lib/cerapan/jenis";
+import {
+  JENIS_ORDER,
+  effectiveSesiPengisian,
+  jenisCerapanLabel,
+} from "@/lib/cerapan/jenis";
 import {
   SUB_STANDARDS,
   getTaraf,
@@ -66,7 +70,9 @@ export function buildJenisTotalRows(
 ): JenisTotalRow[] {
   const rows: JenisTotalRow[] = [];
   for (const jenis of JENIS_ORDER) {
-    const filtered = records.filter((r) => r.sesiPengisian === jenis);
+    const filtered = records.filter(
+      (r) => effectiveSesiPengisian(r.sesiPengisian) === jenis
+    );
     const row = purataJenis(jenis, filtered);
     if (row) rows.push(row);
   }

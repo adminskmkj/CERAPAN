@@ -11,7 +11,7 @@ export interface CerapanMeta {
   tarikh: string;
   kalendarAkademik: string;
   namaPemerhati?: string;
-  /** Panitia KP (cth. BAHASA MELAYU) — untuk rekod PENCERAPAN KETUA PANITIA */
+  /** Panitia KP (cth. BAHASA MELAYU) — bila rekod dicipta oleh ketua panitia */
   panitiaKp?: string;
   createdBy?: string;
   /** Dapatan pencerap mengikut kod sub-standard (cth. 4.1.1) */

@@ -1,4 +1,5 @@
 import {
+  LEGACY_SESI_KETUA_PANITIA,
   SESI_PENGISIAN,
   type JenisCerapan,
 } from "@/lib/scoring/standard4";
@@ -9,37 +10,61 @@ export type { JenisCerapan };
 export const JENIS_KENDIRI = SESI_PENGISIAN[0];
 export const JENIS_PENCERAPAN_1 = SESI_PENGISIAN[1];
 export const JENIS_PENCERAPAN_2 = SESI_PENGISIAN[2];
-export const JENIS_KETUA_PANITIA = SESI_PENGISIAN[3];
+
+/** @deprecated Rekod lama — dinormalkan ke Pencerapan 1 bila dibaca */
+export const LEGACY_JENIS_KETUA_PANITIA = LEGACY_SESI_KETUA_PANITIA;
 
 export const JENIS_PENCERAPAN_ADMIN = [
   JENIS_PENCERAPAN_1,
   JENIS_PENCERAPAN_2,
 ] as const;
 
-export const JENIS_PENCERAPAN_KP = [JENIS_KETUA_PANITIA] as const;
-
 export function isKendiri(jenis: string): boolean {
   return jenis === JENIS_KENDIRI;
 }
 
 export function isPencerapanAdmin(jenis: string): boolean {
-  return jenis === JENIS_PENCERAPAN_1 || jenis === JENIS_PENCERAPAN_2;
+  return (
+    jenis === JENIS_PENCERAPAN_1 ||
+    jenis === JENIS_PENCERAPAN_2 ||
+    jenis === LEGACY_JENIS_KETUA_PANITIA
+  );
 }
 
-export function isKetuaPanitiaCerapan(jenis: string): boolean {
-  return jenis === JENIS_KETUA_PANITIA;
+export function isLegacyKetuaPanitiaCerapan(jenis: string): boolean {
+  return jenis === LEGACY_JENIS_KETUA_PANITIA;
 }
 
-export function jenisCerapanLabel(jenis: string, panitiaKp?: string): string {
-  switch (jenis) {
+/** @deprecated Guna isLegacyKetuaPanitiaCerapan */
+export const isKetuaPanitiaCerapan = isLegacyKetuaPanitiaCerapan;
+
+/** P1/P2 untuk paparan & statistik — rekod KP lama → P1 */
+export function effectiveSesiPengisian(sesi: string): string {
+  if (sesi === LEGACY_JENIS_KETUA_PANITIA) return JENIS_PENCERAPAN_1;
+  return sesi;
+}
+
+export function normalizeCerapanRecord(record: CerapanRecord): CerapanRecord {
+  const sesi = effectiveSesiPengisian(record.sesiPengisian);
+  if (sesi === record.sesiPengisian) return record;
+  return { ...record, sesiPengisian: sesi };
+}
+
+export function formatPencerapKp(nama: string, panitia: string): string {
+  const n = nama.trim();
+  const p = panitia.trim();
+  if (!n) return "";
+  return p ? `${n} — Ketua Panitia ${p}` : n;
+}
+
+export function jenisCerapanLabel(jenis: string): string {
+  switch (effectiveSesiPengisian(jenis)) {
     case JENIS_KENDIRI:
       return "Kendiri";
     case JENIS_PENCERAPAN_1:
       return "Pencerapan 1";
     case JENIS_PENCERAPAN_2:
       return "Pencerapan 2";
-    case JENIS_KETUA_PANITIA:
-      return panitiaKp ? `KP (${panitiaKp})` : "Ketua Panitia";
     default:
       return jenis;
   }
@@ -108,29 +133,24 @@ export const JENIS_ORDER = [
   JENIS_KENDIRI,
   JENIS_PENCERAPAN_1,
   JENIS_PENCERAPAN_2,
-  JENIS_KETUA_PANITIA,
 ] as const;
 
 export interface GuruCerapanGroup {
   key: string;
   namaGuru: string;
   records: CerapanRecord[];
-  byJenis: Partial<Record<string, CerapanRecord>>;
-  /** Beberapa rekod KP (satu per panitia) */
-  kpByPanitia: CerapanRecord[];
 }
 
 export function recordsForJenisInGroup(
   group: GuruCerapanGroup,
   jenisKey: string
 ): CerapanRecord[] {
-  if (isKetuaPanitiaCerapan(jenisKey)) {
-    if (group.kpByPanitia.length > 0) return group.kpByPanitia;
-    const one = group.byJenis[jenisKey];
-    return one ? [one] : [];
-  }
-  const one = group.byJenis[jenisKey];
-  return one ? [one] : [];
+  return group.records
+    .filter((r) => effectiveSesiPengisian(r.sesiPengisian) === jenisKey)
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
 }
 
 export function groupCerapanByGuru(
@@ -143,35 +163,13 @@ export function groupCerapanByGuru(
     const existing = map.get(key);
     if (existing) {
       existing.records.push(record);
-      if (isKetuaPanitiaCerapan(record.sesiPengisian)) {
-        existing.kpByPanitia.push(record);
-      }
-      if (!existing.byJenis[record.sesiPengisian]) {
-        existing.byJenis[record.sesiPengisian] = record;
-      } else if (!isKetuaPanitiaCerapan(record.sesiPengisian)) {
-        existing.byJenis[record.sesiPengisian] = record;
-      }
     } else {
-      const kpByPanitia = isKetuaPanitiaCerapan(record.sesiPengisian)
-        ? [record]
-        : [];
-      const byJenis: Partial<Record<string, CerapanRecord>> = {
-        [record.sesiPengisian]: record,
-      };
       map.set(key, {
         key,
         namaGuru: record.namaGuru,
         records: [record],
-        byJenis,
-        kpByPanitia,
       });
     }
-  }
-
-  for (const group of map.values()) {
-    group.kpByPanitia.sort((a, b) =>
-      (a.panitiaKp ?? "").localeCompare(b.panitiaKp ?? "", "ms")
-    );
   }
 
   return [...map.values()].sort((a, b) =>
@@ -197,7 +195,8 @@ export function getSenaraiEmptyState(
   opts: { isPentadbir: boolean; isKetuaPanitia: boolean }
 ): SenaraiEmptyState {
   const { isPentadbir, isKetuaPanitia } = opts;
-  switch (filter) {
+  const isStaff = isPentadbir || isKetuaPanitia;
+  switch (effectiveSesiPengisian(filter)) {
     case JENIS_KENDIRI:
       return {
         message: "Tiada rekod pencerapan kendiri lagi.",
@@ -210,11 +209,11 @@ export function getSenaraiEmptyState(
       return {
         message: "Tiada rekod pencerapan pertama lagi.",
         hint:
-          "Borang sama dengan Pencerapan 2 — pentadbir yang isi; guru hanya lihat markah.",
-        action: isPentadbir
+          "Pentadbir atau ketua panitia boleh isi — guru yang sama boleh ada lebih daripada satu rekod jika pencerap berbeza (cth. GB & KP).",
+        action: isStaff
           ? {
               href: "/cerapan/baharu",
-              label: "Isi pencerapan pentadbir →",
+              label: "Isi pencerapan →",
             }
           : undefined,
       };
@@ -222,31 +221,19 @@ export function getSenaraiEmptyState(
       return {
         message: "Tiada rekod pencerapan kedua lagi.",
         hint:
-          "Borang sama dengan Pencerapan 1 — pentadbir yang isi; guru hanya lihat markah.",
-        action: isPentadbir
+          "Pentadbir atau ketua panitia boleh isi — guru yang sama boleh ada lebih daripada satu rekod jika pencerap berbeza.",
+        action: isStaff
           ? {
               href: "/cerapan/baharu",
-              label: "Isi pencerapan pentadbir →",
+              label: "Isi pencerapan →",
             }
           : undefined,
-      };
-    case JENIS_KETUA_PANITIA:
-      return {
-        message: "Tiada rekod pencerapan ketua panitia lagi.",
-        hint: "Ketua panitia mengisi pencerapan dalam panitia masing-masing.",
-        action:
-          isPentadbir || isKetuaPanitia
-            ? {
-                href: "/cerapan/baharu",
-                label: "Isi pencerapan (jenis KP) →",
-              }
-            : undefined,
       };
     default:
       return {
         message: "Tiada rekod lagi.",
         hint:
-          "Guru: isi Kendiri sahaja. Pencerapan 1 & 2 (borang sama) diisi pentadbir. KP: ketua panitia.",
+          "Guru: isi Kendiri sahaja. Pencerapan 1 & 2 diisi pentadbir atau ketua panitia (ikut pusingan).",
         action: {
           href: "/cerapan/kendiri",
           label: "Mula pencerapan kendiri →",
@@ -256,15 +243,13 @@ export function getSenaraiEmptyState(
 }
 
 export function jenisCerapanBadgeClass(jenis: string): string {
-  switch (jenis) {
+  switch (effectiveSesiPengisian(jenis)) {
     case JENIS_KENDIRI:
       return "border-sky-200 bg-sky-50 text-sky-800";
     case JENIS_PENCERAPAN_1:
       return "border-violet-200 bg-violet-50 text-violet-800";
     case JENIS_PENCERAPAN_2:
       return "border-amber-200 bg-amber-50 text-amber-900";
-    case JENIS_KETUA_PANITIA:
-      return "border-emerald-200 bg-emerald-50 text-emerald-900";
     default:
       return "border-stone bg-stone-2 text-ink-2";
   }

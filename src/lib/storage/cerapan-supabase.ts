@@ -4,7 +4,14 @@ import {
   inputToScore,
   type InputValue,
 } from "@/lib/scoring/standard4";
-import { isKetuaPanitiaCerapan, normalizeNamaGuru } from "@/lib/cerapan/jenis";
+import {
+  JENIS_ORDER,
+  effectiveSesiPengisian,
+  isKendiri,
+  isPencerapanAdmin,
+  normalizeCerapanRecord,
+  normalizeNamaGuru,
+} from "@/lib/cerapan/jenis";
 import type { CerapanRecord } from "@/lib/types/cerapan";
 
 interface DbCerapan {
@@ -39,7 +46,7 @@ interface DbScore {
 
 function toRecord(row: DbCerapan, scores: Record<string, InputValue>): CerapanRecord {
   const result = calculateCerapan(scores);
-  return {
+  return normalizeCerapanRecord({
     id: row.id,
     kodSekolah: row.kod_sekolah,
     namaSekolah: row.nama_sekolah,
@@ -60,7 +67,7 @@ function toRecord(row: DbCerapan, scores: Record<string, InputValue>): CerapanRe
     result,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-  };
+  });
 }
 
 async function fetchScores(
@@ -134,7 +141,7 @@ export async function saveCerapanSupabase(
     nama_guru: data.namaGuru,
     mata_pelajaran: data.mataPelajaran,
     kelas: data.kelas,
-    sesi_pengisian: data.sesiPengisian,
+    sesi_pengisian: effectiveSesiPengisian(data.sesiPengisian),
     tarikh: data.tarikh,
     kalendar_akademik: data.kalendarAkademik,
     nama_pemerhati: data.namaPemerhati ?? null,
@@ -197,18 +204,22 @@ export function findDuplicateCerapan(
   namaGuru: string,
   sesiPengisian: string,
   excludeId?: string,
-  panitiaKp?: string | null
+  namaPemerhati?: string | null
 ): CerapanRecord | null {
   const key = normalizeNamaGuru(namaGuru);
+  const effectiveSesi = effectiveSesiPengisian(sesiPengisian);
+  const pencerapKey = normalizeNamaGuru(namaPemerhati ?? "");
+
   return (
     records.find((r) => {
       if (r.id === excludeId) return false;
       if (normalizeNamaGuru(r.namaGuru) !== key) return false;
-      if (r.sesiPengisian !== sesiPengisian) return false;
-      if (isKetuaPanitiaCerapan(sesiPengisian)) {
-        const a = (panitiaKp ?? "").trim().toUpperCase();
-        const b = (r.panitiaKp ?? "").trim().toUpperCase();
-        return a === b;
+      if (effectiveSesiPengisian(r.sesiPengisian) !== effectiveSesi) {
+        return false;
+      }
+      if (isKendiri(effectiveSesi)) return true;
+      if (isPencerapanAdmin(effectiveSesi)) {
+        return normalizeNamaGuru(r.namaPemerhati ?? "") === pencerapKey;
       }
       return true;
     }) ?? null
@@ -235,7 +246,12 @@ export function searchCerapanRecords(
     if (q.namaGuru && !r.namaGuru.toLowerCase().includes(q.namaGuru)) return false;
     if (q.kodSekolah && !r.kodSekolah.toLowerCase().includes(q.kodSekolah)) return false;
     if (q.taraf && r.result.taraf !== q.taraf) return false;
-    if (q.sesiPengisian && r.sesiPengisian !== q.sesiPengisian) return false;
+    if (
+      q.sesiPengisian &&
+      effectiveSesiPengisian(r.sesiPengisian) !== q.sesiPengisian
+    ) {
+      return false;
+    }
     return true;
   });
 }
@@ -277,19 +293,12 @@ export function computeStats(records: CerapanRecord[]): DashboardStats {
 export type DashboardStatsByJenis = Record<string, DashboardStats>;
 
 export function computeStatsByJenis(records: CerapanRecord[]): DashboardStatsByJenis {
-  const grouped = new Map<string, CerapanRecord[]>();
-
-  for (const record of records) {
-    const jenis = record.sesiPengisian;
-    const bucket = grouped.get(jenis);
-    if (bucket) bucket.push(record);
-    else grouped.set(jenis, [record]);
-  }
-
   const result: DashboardStatsByJenis = {};
-  for (const [jenis, bucket] of grouped) {
-    result[jenis] = computeStats(bucket);
+  for (const jenis of JENIS_ORDER) {
+    const bucket = records.filter(
+      (r) => effectiveSesiPengisian(r.sesiPengisian) === jenis
+    );
+    if (bucket.length > 0) result[jenis] = computeStats(bucket);
   }
-
   return result;
 }

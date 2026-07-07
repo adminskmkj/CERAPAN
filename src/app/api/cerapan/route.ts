@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isKendiri, isKetuaPanitiaCerapan } from "@/lib/cerapan/jenis";
+import { isKendiri, isPencerapanAdmin } from "@/lib/cerapan/jenis";
 import { KOD_SEKOLAH, NAMA_SEKOLAH } from "@/lib/data/sekolah";
 import { requireCerapanWriter } from "@/lib/auth/require-cerapan";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -69,10 +69,17 @@ export async function POST(request: Request) {
     const auth = await requireCerapanWriter(sesiPengisian, existing, draft);
     if (auth.error) return auth.error;
     userId = auth.session.user.id;
-    if (isKetuaPanitiaCerapan(sesiPengisian)) {
+    if (
+      auth.session.appRole === "ketua_panitia" &&
+      isPencerapanAdmin(sesiPengisian)
+    ) {
       panitiaKp = auth.session.panitia?.trim() ?? panitiaKp;
     }
   }
+
+  const namaPemerhati = body.namaPemerhati
+    ? String(body.namaPemerhati).trim()
+    : null;
 
   const existingList = await listCerapanSupabase(admin);
   const duplicate = findDuplicateCerapan(
@@ -80,15 +87,13 @@ export async function POST(request: Request) {
     body.namaGuru,
     sesiPengisian,
     body.id,
-    panitiaKp
+    namaPemerhati
   );
   if (duplicate) {
-    const extra = isKetuaPanitiaCerapan(sesiPengisian) && panitiaKp
-      ? ` (panitia ${panitiaKp})`
-      : "";
+    const pencerap = namaPemerhati ? ` (${namaPemerhati})` : "";
     return NextResponse.json(
       {
-        error: `Rekod ${sesiPengisian} untuk ${body.namaGuru}${extra} sudah wujud.`,
+        error: `Rekod ${sesiPengisian} untuk ${body.namaGuru}${pencerap} sudah wujud.`,
       },
       { status: 409 }
     );
@@ -120,6 +125,7 @@ export async function POST(request: Request) {
     );
     return NextResponse.json(record);
   } catch (e) {
+    console.error("[POST /api/cerapan]", e);
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Ralat simpan" },
       { status: 400 }

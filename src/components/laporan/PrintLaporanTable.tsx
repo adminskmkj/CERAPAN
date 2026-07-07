@@ -41,7 +41,7 @@ export function PrintLaporanTable({ jenis, rows, generatedAt }: Props) {
             <th className="print-laporan-th">Kelas</th>
             <th className="print-laporan-th">Mata Pelajaran</th>
             <th className="print-laporan-th print-laporan-th--pentadbir">
-              Nama Pentadbir
+              Nama Pencerap
             </th>
             {DOMAIN_ASPEK.map((d) => (
               <th key={d} className="print-laporan-th print-laporan-th--pct">
@@ -54,7 +54,7 @@ export function PrintLaporanTable({ jenis, rows, generatedAt }: Props) {
         <tbody>
           {rows.map((row, i) => (
             <tr
-              key={row.namaGuru}
+              key={`${row.namaGuru}-${row.namaPentadbir}-${i}`}
               className={cn(!row.hasRecord && "print-laporan-row--empty")}
             >
               <td className="print-laporan-td print-laporan-td--nama">

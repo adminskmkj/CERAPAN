@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import {
   JENIS_KENDIRI,
-  JENIS_KETUA_PANITIA,
   JENIS_PENCERAPAN_1,
   JENIS_PENCERAPAN_2,
   getSenaraiEmptyState,
@@ -35,7 +34,6 @@ const JENIS_TABS = [
   { value: JENIS_KENDIRI, label: "Kendiri" },
   { value: JENIS_PENCERAPAN_1, label: "Pencerapan 1" },
   { value: JENIS_PENCERAPAN_2, label: "Pencerapan 2" },
-  { value: JENIS_KETUA_PANITIA, label: "Ketua Panitia" },
 ] as const;
 
 function LaporanIndividuSkeleton() {
@@ -286,10 +284,7 @@ export default function LaporanIndividuPage() {
                                 jenisCerapanBadgeClass(jenisKey)
                               )}
                             >
-                              {jenisCerapanLabel(
-                                jenisKey,
-                                record.panitiaKp
-                              )}
+                              {jenisCerapanLabel(jenisKey)}
                             </span>
                             <div className="min-w-0 flex-1 text-sm">
                               <p className="text-ink-2">

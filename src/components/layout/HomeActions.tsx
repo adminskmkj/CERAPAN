@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 export function HomeActions() {
   const { isAdmin, isKetuaPanitia, loading } = useAuth();
-  const isStaff = isAdmin || isKetuaPanitia;
+  const isKpOnly = isKetuaPanitia && !isAdmin;
 
   return (
     <div className="mt-9 flex flex-wrap items-center gap-4">
@@ -24,13 +24,13 @@ export function HomeActions() {
           Pencerapan Pentadbir
         </Link>
       )}
-      {!loading && isStaff && (
-        <Link href="/cerapan/ketua-panitia" className="premium-btn-secondary">
-          <UserPen className="h-4 w-4" strokeWidth={1.5} />
+      {!loading && isKpOnly && (
+        <Link href="/cerapan/baharu" className="premium-btn-secondary">
+          <PlusCircle className="h-4 w-4" strokeWidth={1.5} />
           Pencerapan Ketua Panitia
         </Link>
       )}
-      {!loading && !isStaff && (
+      {!loading && !isAdmin && !isKetuaPanitia && (
         <Link
           href="/log-masuk"
           className="group inline-flex items-center gap-1.5 px-1 text-sm font-semibold text-muted transition hover:text-accent"

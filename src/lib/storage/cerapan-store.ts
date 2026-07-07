@@ -1,3 +1,7 @@
+import {
+  effectiveSesiPengisian,
+  normalizeCerapanRecord,
+} from "@/lib/cerapan/jenis";
 import { KOD_SEKOLAH, NAMA_SEKOLAH } from "@/lib/data/sekolah";
 import { findDuplicateCerapan } from "@/lib/storage/cerapan-supabase";
 import type { CerapanRecord } from "@/lib/types/cerapan";
@@ -21,13 +25,17 @@ function writeAll(records: CerapanRecord[]) {
 }
 
 export function listCerapan(): CerapanRecord[] {
-  return readAll().sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+  return readAll()
+    .map(normalizeCerapanRecord)
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
 }
 
 export function getCerapan(id: string): CerapanRecord | null {
-  return readAll().find((r) => r.id === id) ?? null;
+  const record = readAll().find((r) => r.id === id);
+  return record ? normalizeCerapanRecord(record) : null;
 }
 
 export function saveCerapan(
@@ -43,17 +51,19 @@ export function saveCerapan(
     data.namaGuru,
     data.sesiPengisian,
     data.id,
-    data.panitiaKp
+    data.namaPemerhati
   );
   if (duplicate) {
+    const pencerap = data.namaPemerhati ? ` (${data.namaPemerhati})` : "";
     throw new Error(
-      `Rekod ${data.sesiPengisian} untuk ${data.namaGuru} sudah wujud.`
+      `Rekod ${data.sesiPengisian} untuk ${data.namaGuru}${pencerap} sudah wujud.`
     );
   }
   const existing = data.id ? records.find((r) => r.id === data.id) : null;
 
   const record: CerapanRecord = {
     ...data,
+    sesiPengisian: effectiveSesiPengisian(data.sesiPengisian),
     kodSekolah: KOD_SEKOLAH,
     namaSekolah: NAMA_SEKOLAH,
     id: existing?.id ?? crypto.randomUUID(),
