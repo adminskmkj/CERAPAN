@@ -6,7 +6,14 @@ import type { CerapanRecord } from "@/lib/types/cerapan";
 import { SUB_STANDARDS } from "@/lib/scoring/standard4";
 import { jenisCerapanLabel } from "@/lib/cerapan/jenis";
 import { compactUlasanText, formatTarikh } from "@/lib/utils";
-import { Download, FileText, PlusCircle, Printer, BarChart3 } from "lucide-react";
+import {
+  BarChart3,
+  Download,
+  FileText,
+  Pencil,
+  PlusCircle,
+  Printer,
+} from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { MaklumBalasHeader } from "./MaklumBalasHeader";
 
@@ -15,7 +22,13 @@ interface Props {
 }
 
 export function LaporanGuru({ record }: Props) {
-  const { isAdmin, isKetuaPanitia } = useAuth();
+  const { isAdmin, isKetuaPanitia, canModifyCerapanRecord } = useAuth();
+  const bolehUbah = canModifyCerapanRecord({
+    sesiPengisian: record.sesiPengisian,
+    createdBy: record.createdBy,
+    panitiaKp: record.panitiaKp,
+    mataPelajaran: record.mataPelajaran,
+  });
   const ref = useRef<HTMLDivElement>(null);
 
   const dapatan = record.dapatanPencerap ?? {};
@@ -77,13 +90,22 @@ export function LaporanGuru({ record }: Props) {
           <FileText className="h-4 w-4" />
           Maklum Balas Pencerapan
         </Link>
+        {bolehUbah && (
+          <Link
+            href={`/cerapan/${record.id}/ubah`}
+            className="inline-flex items-center gap-2 rounded-full border border-accent bg-accent px-5 py-2.5 text-sm font-semibold text-white shadow-soft transition hover:opacity-90"
+          >
+            <Pencil className="h-4 w-4" />
+            Ubah Pencerapan
+          </Link>
+        )}
         {isAdmin && (
           <Link
             href="/cerapan/baharu"
             className="inline-flex items-center gap-2 rounded-full border border-accent bg-paper-card px-5 py-2.5 text-sm font-semibold text-accent shadow-soft transition hover:bg-accent-soft"
           >
             <PlusCircle className="h-4 w-4" />
-            PENCERAPAN BARU
+            Pencerapan Baru
           </Link>
         )}
       </div>
