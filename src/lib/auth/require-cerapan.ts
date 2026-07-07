@@ -137,7 +137,7 @@ export async function requireCerapanDelete(
       error: NextResponse.json(
         {
           error:
-            "Anda tidak boleh padam rekod ini. KP hanya boleh padam rekod yang dibuat sendiri; pentadbir boleh padam semua.",
+            "Hanya pentadbir boleh memadam rekod yang sudah disimpan.",
         },
         { status: 403 }
       ),
@@ -155,9 +155,9 @@ function forbidden(
   const isPentadbirRecord =
     effective === JENIS_PENCERAPAN_1 || effective === JENIS_PENCERAPAN_2;
   let msg = "Akses ditolak untuk jenis pencerapan ini.";
-  if (session.appRole === "ketua_panitia" && isPentadbirRecord && isUpdate) {
+  if (isUpdate) {
     msg =
-      "Ketua Panitia hanya boleh mengubah markah rekod yang dibuat sendiri. Rekod pentadbir atau KP lain tidak boleh diubah.";
+      "Hanya pentadbir boleh mengubah rekod yang sudah disimpan. Ketua Panitia dan guru perlu hubungi pentadbir.";
   } else if (session.appRole === "ketua_panitia" && isPentadbirRecord) {
     msg =
       "Pencerapan ini bukan dalam panitia anda, atau rekod untuk guru & pencerap ini sudah wujud.";

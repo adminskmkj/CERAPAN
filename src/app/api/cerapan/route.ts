@@ -63,15 +63,17 @@ export async function POST(request: Request) {
     panitiaKp: panitiaKp ?? undefined,
   };
 
-  if (!isKendiri(sesiPengisian)) {
+  if (existing || !isKendiri(sesiPengisian)) {
     const auth = await requireCerapanWriter(sesiPengisian, existing, draft);
     if (auth.error) return auth.error;
-    userId = auth.session.user.id;
-    if (
-      auth.session.appRole === "ketua_panitia" &&
-      isPencerapanAdmin(sesiPengisian)
-    ) {
-      panitiaKp = auth.session.panitia?.trim() ?? panitiaKp;
+    if (!isKendiri(sesiPengisian)) {
+      userId = auth.session.user.id;
+      if (
+        auth.session.appRole === "ketua_panitia" &&
+        isPencerapanAdmin(sesiPengisian)
+      ) {
+        panitiaKp = auth.session.panitia?.trim() ?? panitiaKp;
+      }
     }
   }
 
@@ -90,7 +92,7 @@ export async function POST(request: Request) {
   if (duplicate) {
     const pencerap = namaPemerhati ? ` (${namaPemerhati})` : "";
     const editHint = isKendiri(sesiPengisian)
-      ? " Pergi ke Rekod → Laporan Individu untuk ubah rekod sedia ada."
+      ? " Hubungi pentadbir jika perlu ubah rekod sedia ada."
       : "";
     return NextResponse.json(
       {

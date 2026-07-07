@@ -59,43 +59,13 @@ export function canCreateCerapan(
   return false;
 }
 
-/** KP boleh ubah rekod P1/P2 yang dicipta sendiri sahaja; pentadbir ubah semua */
+/** Ubah rekod sedia ada — pentadbir sahaja (kendiri, P1, P2) */
 export function canModifyCerapan(
   role: AppRole | null,
-  sesiPengisian: string,
-  ctx?: CerapanPermissionContext
+  _sesiPengisian: string,
+  _ctx?: CerapanPermissionContext
 ): boolean {
-  const sesi = effectiveSesiPengisian(sesiPengisian);
-  if (isKendiri(sesi)) return true;
-  if (isPencerapanAdmin(sesi)) {
-    if (role === "pentadbir") return true;
-    if (role === "ketua_panitia") {
-      const userId = ctx?.userId;
-      const panitia = ctx?.userPanitia?.trim();
-      const record = ctx?.record;
-      if (!userId || !panitia || !record) return false;
-
-      if (record.createdBy && record.createdBy !== userId) return false;
-
-      if (
-        record.panitiaKp &&
-        !panitiaMatchesMataPelajaran(panitia, record.panitiaKp)
-      ) {
-        return false;
-      }
-
-      if (
-        record.mataPelajaran &&
-        !panitiaMatchesMataPelajaran(panitia, record.mataPelajaran)
-      ) {
-        return false;
-      }
-
-      return true;
-    }
-    return false;
-  }
-  return canCreateCerapan(role, sesi, ctx);
+  return role === "pentadbir";
 }
 
 export function canDeleteCerapan(

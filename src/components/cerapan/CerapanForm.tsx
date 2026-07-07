@@ -116,15 +116,14 @@ export function CerapanForm({ mode, initial }: Props) {
     isAdmin,
   } = useAuth();
   const isKpStaff = isKetuaPanitia && !isAdmin;
-  const kpReadOnly =
-    isKpStaff &&
+  const editReadOnly =
     Boolean(initial?.id) &&
-    initial?.sesiPengisian &&
+    Boolean(initial?.sesiPengisian) &&
     !canModifyCerapanRecord({
-      sesiPengisian: initial.sesiPengisian,
-      createdBy: initial.createdBy,
-      panitiaKp: initial.panitiaKp,
-      mataPelajaran: initial.mataPelajaran ?? "",
+      sesiPengisian: initial!.sesiPengisian,
+      createdBy: initial!.createdBy,
+      panitiaKp: initial!.panitiaKp,
+      mataPelajaran: initial!.mataPelajaran ?? "",
     });
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormState>(() => {
@@ -276,8 +275,8 @@ export function CerapanForm({ mode, initial }: Props) {
         })
       ) {
         throw new Error(
-          initial?.id && isKpStaff
-            ? "Anda hanya boleh mengubah markah rekod yang anda sendiri buat."
+          initial?.id
+            ? "Hanya pentadbir boleh mengubah rekod yang sudah disimpan."
             : "Anda tidak dibenarkan menyimpan jenis pencerapan ini."
         );
       }
@@ -325,10 +324,11 @@ export function CerapanForm({ mode, initial }: Props) {
         </div>
       )}
 
-      {kpReadOnly && (
+      {editReadOnly && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Rekod ini bukan milik panitia anda atau dibuat oleh KP lain. Anda
-          hanya boleh ubah markah pencerapan yang anda sendiri isikan.
+          Rekod ini sudah disimpan. Hanya pentadbir boleh mengubah markah dan
+          maklumat. Sila log masuk sebagai pentadbir atau hubungi pentadbir
+          sekolah.
         </div>
       )}
 
@@ -856,7 +856,7 @@ export function CerapanForm({ mode, initial }: Props) {
             <button
               type="button"
               onClick={handleSave}
-              disabled={saving || Boolean(kpReadOnly)}
+              disabled={saving || Boolean(editReadOnly)}
               className="rounded-full bg-accent px-6 py-2.5 text-sm font-semibold text-white shadow-soft transition hover:opacity-90 disabled:opacity-60"
             >
               {saving ? "Menyimpan…" : "Simpan & Lihat Laporan"}
