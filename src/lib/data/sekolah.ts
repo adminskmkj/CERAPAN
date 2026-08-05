@@ -10,6 +10,12 @@ export const NAMA_KELAS = [
   "Ibn-Khaldun",
   "Ibn-Batutah",
   "Ibn-Sina",
+  "PRA AMAN",
+  "PRA DAMAI",
+  "PRA HARMONI",
+  "PRA MAKMUR",
+  "PRA SEJAHTERA",
+  "PRA SENTOSA",
 ] as const;
 
 export const TAHUN_SESI_PAGI = [4, 5, 6] as const;
