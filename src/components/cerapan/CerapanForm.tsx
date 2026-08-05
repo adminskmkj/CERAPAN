@@ -33,6 +33,8 @@ import {
 } from "@/lib/storage/pentadbir-store";
 import {
   NAMA_KELAS,
+  NAMA_KELAS_PRA,
+  TAHUN_PRA,
   TAHUN_SESI_PETANG,
   formatKelas,
   getTahunBySesi,
@@ -113,9 +115,13 @@ function buildFormFromInitial(
   if (initial?.kelas) {
     const parsed = parseKelas(initial.kelas);
     if (parsed) {
-      base.tahunKelas = String(parsed.tahun);
       base.namaKelas = parsed.namaKelas;
-      base.sesiGuru = sesiGuruFromTahun(parsed.tahun);
+      if (parsed.isPRA) {
+        base.tahunKelas = TAHUN_PRA;
+      } else {
+        base.tahunKelas = String(parsed.tahun);
+        base.sesiGuru = sesiGuruFromTahun(parsed.tahun);
+      }
     }
   }
 
@@ -324,7 +330,7 @@ export function CerapanForm({ mode, initial }: Props) {
         namaSekolah: NAMA_SEKOLAH,
         namaGuru,
         mataPelajaran: getMataPelajaranAkhir(),
-        kelas: formatKelas(Number(form.tahunKelas), form.namaKelas),
+        kelas: formatKelas(form.tahunKelas, form.namaKelas),
         sesiPengisian: form.sesiPengisian,
         tarikh: form.tarikh,
         kalendarAkademik: form.kalendarAkademik,
@@ -491,7 +497,10 @@ export function CerapanForm({ mode, initial }: Props) {
               <span className="font-medium text-ink-2">Tahun *</span>
               <select
                 value={form.tahunKelas}
-                onChange={(e) => update("tahunKelas", e.target.value)}
+                onChange={(e) => {
+                  update("tahunKelas", e.target.value);
+                  update("namaKelas", "");
+                }}
                 className={inputCls}
               >
                 <option value="">— Pilih tahun —</option>
@@ -500,6 +509,7 @@ export function CerapanForm({ mode, initial }: Props) {
                     Tahun {tahun}
                   </option>
                 ))}
+                <option value={TAHUN_PRA}>PRA Sekolah</option>
               </select>
             </label>
 
@@ -511,16 +521,21 @@ export function CerapanForm({ mode, initial }: Props) {
                 className={inputCls}
               >
                 <option value="">— Pilih kelas —</option>
-                {NAMA_KELAS.map((nama) => (
+                {(form.tahunKelas === TAHUN_PRA
+                  ? NAMA_KELAS_PRA
+                  : NAMA_KELAS
+                ).map((nama) => (
                   <option key={nama} value={nama}>
                     {nama}
                   </option>
                 ))}
               </select>
               <p className="mt-1.5 text-xs text-muted">
-                {form.sesiGuru === "PAGI"
-                  ? "Sesi pagi: Tahun 4, 5 & 6"
-                  : "Sesi petang: Tahun 1, 2 & 3"}
+                {form.tahunKelas === TAHUN_PRA
+                  ? "Kelas Program Khas (PRA) sahaja"
+                  : form.sesiGuru === "PAGI"
+                    ? "Sesi pagi: Tahun 4, 5 & 6"
+                    : "Sesi petang: Tahun 1, 2 & 3"}
               </p>
             </label>
 
