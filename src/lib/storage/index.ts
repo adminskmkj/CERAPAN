@@ -83,7 +83,18 @@ export async function searchCerapan(query: {
   taraf?: string;
   sesiPengisian?: string;
 }): Promise<CerapanRecord[]> {
-  const all = await listCerapan();
+  if (await isCloudEnabled()) {
+    const params = new URLSearchParams();
+    if (query.namaGuru) params.set("namaGuru", query.namaGuru);
+    const res = await fetch(
+      `/api/cerapan${params.toString() ? `?${params.toString()}` : ""}`
+    );
+    if (res.ok) {
+      const all = (await res.json()) as CerapanRecord[];
+      return remote.searchCerapanRecords(all, query);
+    }
+  }
+  const all = await local.listCerapan();
   return remote.searchCerapanRecords(all, query);
 }
 

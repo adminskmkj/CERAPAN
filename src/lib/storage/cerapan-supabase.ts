@@ -108,12 +108,16 @@ function throwIfError(error: unknown): never {
 }
 
 export async function listCerapanSupabase(
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  filter?: { namaGuru?: string }
 ): Promise<CerapanRecord[]> {
-  const { data, error } = await supabase
-    .from("cerapan")
-    .select("*")
-    .order("created_at", { ascending: false });
+  let query = supabase.from("cerapan").select("*");
+
+  if (filter?.namaGuru) {
+    query = query.ilike("nama_guru", `%${filter.namaGuru}%`);
+  }
+
+  const { data, error } = await query.order("created_at", { ascending: false });
 
   if (error) throwIfError(error);
   if (!data?.length) return [];

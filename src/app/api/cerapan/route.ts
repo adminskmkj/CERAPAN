@@ -15,7 +15,7 @@ import type { InputValue } from "@/lib/scoring/standard4";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(request: Request) {
   const admin = createAdminClient();
   if (!admin) {
     return NextResponse.json(
@@ -24,8 +24,11 @@ export async function GET() {
     );
   }
 
+  const { searchParams } = new URL(request.url);
+  const namaGuru = searchParams.get("namaGuru")?.trim() || undefined;
+
   try {
-    const records = await listCerapanSupabase(admin);
+    const records = await listCerapanSupabase(admin, { namaGuru });
     return NextResponse.json(records);
   } catch (e) {
     return NextResponse.json({ error: formatSupabaseError(e) }, { status: 400 });
