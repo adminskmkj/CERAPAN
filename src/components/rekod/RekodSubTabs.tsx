@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ClipboardList, Printer } from "lucide-react";
+import { ClipboardList, Printer, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 const REKOD_TABS = [
   {
@@ -20,6 +21,8 @@ const REKOD_TABS = [
 
 export function RekodSubTabs() {
   const pathname = usePathname();
+  const { isAdmin, isKetuaPanitia } = useAuth();
+  const canManage = isAdmin || isKetuaPanitia;
 
   return (
     <nav className="premium-tabs" aria-label="Jenis rekod">
@@ -39,6 +42,20 @@ export function RekodSubTabs() {
           </Link>
         );
       })}
+      {canManage && (
+        <Link
+          href="/rekod/tambah-guru"
+          className={cn(
+            "premium-tab inline-flex items-center gap-2",
+            pathname.startsWith("/rekod/tambah-guru")
+              ? "premium-tab--active"
+              : "premium-tab--idle"
+          )}
+        >
+          <Users className="h-4 w-4" strokeWidth={1.5} />
+          Senarai Guru
+        </Link>
+      )}
     </nav>
   );
 }

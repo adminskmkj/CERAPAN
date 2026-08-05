@@ -169,3 +169,28 @@ export async function POST(request: Request) {
     createdAt: data.created_at,
   });
 }
+
+export async function DELETE(request: Request) {
+  const admin = createAdminClient();
+  if (!admin) {
+    return NextResponse.json(
+      { error: "Supabase tidak dikonfigurasi" },
+      { status: 503 }
+    );
+  }
+
+  const body = await request.json().catch(() => ({}));
+  const id = String(body.id ?? "").trim();
+
+  if (!id) {
+    return NextResponse.json({ error: "ID guru diperlukan" }, { status: 400 });
+  }
+
+  const { error } = await admin.from("gurus").delete().eq("id", id);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  return NextResponse.json({ ok: true });
+}

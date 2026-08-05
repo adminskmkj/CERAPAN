@@ -96,6 +96,25 @@ export async function getSenaraiGuru(
   return options.map((o) => o.label);
 }
 
+export async function padamGuru(id: string): Promise<void> {
+  if (!id?.trim()) return;
+
+  if (await isCloudEnabled()) {
+    await fetch(`/api/guru`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    return;
+  }
+
+  const map = readMap();
+  for (const kod of Object.keys(map)) {
+    map[kod] = map[kod].filter((n) => n !== id);
+  }
+  writeMap(map);
+}
+
 export async function tambahGuru(
   kodSekolah: string,
   namaGuru: string,
