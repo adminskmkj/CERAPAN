@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Archive,
@@ -56,7 +56,9 @@ export default function LaporanIndividuPage() {
   const isStaff = isAdmin || isKetuaPanitia;
   const [records, setRecords] = useState<Awaited<ReturnType<typeof searchCerapan>>>([]);
   const [loading, setLoading] = useState(true);
+  const [namaInput, setNamaInput] = useState("");
   const [namaGuru, setNamaGuru] = useState("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [taraf, setTaraf] = useState("");
   const [jenis, setJenis] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -92,6 +94,17 @@ export default function LaporanIndividuPage() {
       setExpanded(null);
     }
   }, [expanded, guruGroups]);
+
+  function applyNamaSearch(immediate = false) {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (immediate) {
+      setNamaGuru(namaInput.trim());
+      return;
+    }
+    debounceRef.current = setTimeout(() => {
+      setNamaGuru(namaInput.trim());
+    }, 400);
+  }
 
   async function handleDelete(id: string) {
     if (confirm("Padam rekod pencerapan ini?")) {
@@ -157,8 +170,17 @@ export default function LaporanIndividuPage() {
               strokeWidth={1.5}
             />
             <input
-              value={namaGuru}
-              onChange={(e) => setNamaGuru(e.target.value)}
+              value={namaInput}
+              onChange={(e) => {
+                setNamaInput(e.target.value);
+                applyNamaSearch();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  applyNamaSearch(true);
+                }
+              }}
               className="w-full rounded-xl border border-stone bg-white py-2.5 pl-9 pr-3 text-sm shadow-sm"
               placeholder="Nama guru…"
             />
