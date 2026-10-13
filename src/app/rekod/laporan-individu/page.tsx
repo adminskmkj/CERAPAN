@@ -25,6 +25,7 @@ import {
 } from "@/lib/cerapan/jenis";
 import { NAMA_SEKOLAH } from "@/lib/data/sekolah";
 import { deleteCerapan, searchCerapan } from "@/lib/storage";
+import { searchCerapanRecords } from "@/lib/storage/cerapan-supabase";
 import { SESI_PENGISIAN, getTarafColor } from "@/lib/scoring/standard4";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn, formatTarikh } from "@/lib/utils";
@@ -54,29 +55,35 @@ export default function LaporanIndividuPage() {
   const { isAdmin, isKetuaPanitia, canDeleteCerapanRecord, canModifyCerapanRecord } =
     useAuth();
   const isStaff = isAdmin || isKetuaPanitia;
-  const [records, setRecords] = useState<Awaited<ReturnType<typeof searchCerapan>>>([]);
+  const [allRecords, setAllRecords] = useState<Awaited<ReturnType<typeof searchCerapan>>>([]);
   const [loading, setLoading] = useState(true);
   const [namaInput, setNamaInput] = useState("");
-  const [namaGuru, setNamaGuru] = useState("");
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestRef = useRef({ id: 0 });
   const [taraf, setTaraf] = useState("");
   const [jenis, setJenis] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    setLoading(true);
-    const data = await searchCerapan({
-      namaGuru: namaGuru || undefined,
-      taraf: taraf || undefined,
-      sesiPengisian: jenis || undefined,
-    });
-    setRecords(data);
-    setLoading(false);
-  }, [namaGuru, taraf, jenis]);
+    const request = ++requestRef.current.id;
+    try {
+      const data = await searchCerapan({});
+      if (request === requestRef.current.id) setAllRecords(data);
+    } finally {
+      if (request === requestRef.current.id) setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
+    const requests = requestRef.current;
     refresh();
+    return () => { requests.id++; };
   }, [refresh]);
+
+  const records = useMemo(() => searchCerapanRecords(allRecords, {
+    namaGuru: namaInput.trim() || undefined,
+    taraf: taraf || undefined,
+    sesiPengisian: jenis || undefined,
+  }), [allRecords, namaInput, taraf, jenis]);
 
   const guruGroups = useMemo(() => groupCerapanByGuru(records), [records]);
   const jenisRows = useMemo(() => jenisOrderForFilter(jenis), [jenis]);
@@ -94,17 +101,6 @@ export default function LaporanIndividuPage() {
       setExpanded(null);
     }
   }, [expanded, guruGroups]);
-
-  function applyNamaSearch(immediate = false) {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (immediate) {
-      setNamaGuru(namaInput.trim());
-      return;
-    }
-    debounceRef.current = setTimeout(() => {
-      setNamaGuru(namaInput.trim());
-    }, 400);
-  }
 
   async function handleDelete(id: string) {
     if (confirm("Padam rekod pencerapan ini?")) {
@@ -171,14 +167,10 @@ export default function LaporanIndividuPage() {
             />
             <input
               value={namaInput}
-              onChange={(e) => {
-                setNamaInput(e.target.value);
-                applyNamaSearch();
-              }}
+              onChange={(e) => setNamaInput(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
-                  applyNamaSearch(true);
                 }
               }}
               className="w-full rounded-xl border border-stone bg-white py-2.5 pl-9 pr-3 text-sm shadow-sm"

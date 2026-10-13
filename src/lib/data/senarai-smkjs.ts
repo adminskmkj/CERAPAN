@@ -116,11 +116,12 @@ export function getPentadbirDicergap(sesi: SesiGuru): StaffEntry[] {
 
 export function getDefaultGuruBySesi(sesi: SesiGuru): StaffEntry[] {
   const guru = sesi === "PAGI" ? SENARAI_GURU_PAGI : SENARAI_GURU_PETANG;
-  const pentadbir = getPentadbirDicergap(sesi);
   const seen = new Set<string>();
   const merged: StaffEntry[] = [];
 
-  for (const entry of [...pentadbir, ...guru]) {
+  // Senarai guru untuk dropdown "Nama Guru" — pentadbir TIDAK dimasukkan,
+  // kerana mereka menjadi pencerap (dropdown "Nama Pencerap").
+  for (const entry of guru) {
     if (seen.has(entry.nama)) continue;
     seen.add(entry.nama);
     merged.push(entry);
