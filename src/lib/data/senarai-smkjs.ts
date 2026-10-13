@@ -5,6 +5,14 @@ export interface StaffEntry {
 
 export type SesiGuru = "PAGI" | "PETANG";
 
+/**
+ * SENARAI RASMI 2026 — SK MOHD KHIR JOHARI JOHOR BAHRU
+ * Sumber: "Senarai Guru dan Staf 2026"
+ * Pencerap = 5 pentadbir. Guru = kolum SESI PAGI + SESI PETANG sahaja.
+ * AKP, PPM/MySTEP dan guru praktikum TIDAK dimasukkan.
+ */
+
+/** Pentadbir — hanya ini yang muncul sebagai "Nama Pencerap". */
 export const SENARAI_PEMERHATI: StaffEntry[] = [
   { nama: "SITI ANITA BINTI MISRAN", jawatan: "GB" },
   { nama: "SYED ZAINAL ABIDIN BIN TUAN ZAKIR", jawatan: "GPK KURI" },
@@ -62,8 +70,10 @@ export const SENARAI_GURU_PETANG: StaffEntry[] = [
   { nama: "ABDULLAH BIN MASTOR" },
   { nama: "ADIBAH BINTI OMAR" },
   { nama: "AINUN SOFIAH BT. ZAINAL" },
+  { nama: "AINUR MARDHIAH BINTI MUDA" },
   { nama: "ASIAH BT MUNAJAM", jawatan: "GURU PRA" },
   { nama: "AZLIZA BINTI A ALLAH @ ABDULLAH" },
+  { nama: "BAQIR NAJMUDDIN BIN MUSLAN" },
   { nama: "FAEZA BINTI HAMZAH" },
   { nama: "FAIZATI BINTI IMAM FAUZI" },
   { nama: "FATIMAH BINTI SALLEH" },
@@ -80,7 +90,9 @@ export const SENARAI_GURU_PETANG: StaffEntry[] = [
   { nama: "NUR AIN NAJMIAH BINTI ZAID" },
   { nama: "NUR AKALILI TASHA BINTI JAMIL" },
   { nama: "NUR ASYIQIN BINTI RASDI" },
+  { nama: "NUR DIANA BINTI IBRAHIM", jawatan: "GURU PRA" },
   { nama: "NUR KHAIREEN AMEERAH BINTI ABD HALIM ALAM SHAH" },
+  { nama: "NURFAZIRA BINTI ABDUL HAFIDZ", jawatan: "GURU PRA" },
   { nama: "NURUL IZZATI BINTI MOHD SUHAIMI" },
   { nama: "PUTRI NURFARAH YASMIN BINTI MOHD RAFAIZAN" },
   { nama: "RAFIDAH BINTI MD TAIB" },
@@ -90,7 +102,6 @@ export const SENARAI_GURU_PETANG: StaffEntry[] = [
   { nama: "SARINAH BINTI SHAWAL" },
   { nama: "SHAREETHAA A/P GAVERAN" },
   { nama: "SITI HALIYZA BT MOHD JUPRI" },
-  { nama: "SITI NOR ZULAIKHA BINTI MOHAMAD ROZLAN" },
   { nama: "SITI NURAINI BT CHE MAT ZAIN@CHE HASAN" },
   { nama: "SITI ROHANA BINTI AWANG" },
 ];

@@ -67,43 +67,12 @@ export async function GET(request: Request) {
       mataPelajaran: row.mata_pelajaran,
       createdAt: row.created_at,
     }));
-
-    const { data: cerapanRows } = await admin
-      .from("cerapan")
-      .select("nama_guru")
-      .eq("kod_sekolah", kodSekolah)
-      .limit(1000);
-
-    for (const row of cerapanRows ?? []) {
-      const nama = row.nama_guru?.trim();
-      if (nama && !byNama.has(nama)) {
-        byNama.set(nama, {
-          nama,
-          label: nama,
-          jawatan: null,
-          sesi,
-        });
-      }
-    }
   }
 
-  for (const row of fromDb) {
-    if (!byNama.has(row.namaGuru)) {
-      const label = row.mataPelajaran
-        ? `${row.namaGuru} — ${row.mataPelajaran}`
-        : row.namaGuru;
-      byNama.set(row.namaGuru, {
-        nama: row.namaGuru,
-        label,
-        jawatan: row.mataPelajaran,
-        sesi,
-      });
-    }
-  }
-
-  const options = [...byNama.values()].sort((a, b) =>
-    a.label.localeCompare(b.label, "ms")
-  );
+  // Dropdown Nama Guru ikut senarai rasmi sahaja. Jangan campur nama daripada
+  // rekod cerapan lama atau jadual gurus tambahan kerana itu menghasilkan
+  // pendua/AKP/praktikum.
+  const options = defaultOptions;
 
   return NextResponse.json({
     gurus: fromDb,
