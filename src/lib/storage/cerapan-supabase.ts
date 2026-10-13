@@ -122,13 +122,53 @@ export async function listCerapanSupabase(
   if (error) throwIfError(error);
   if (!data?.length) return [];
 
-  const records: CerapanRecord[] = [];
-  for (const row of data as DbCerapan[]) {
-    if (isTestCerapanRecord({ namaGuru: row.nama_guru })) continue;
-    const scores = await fetchScores(supabase, row.id);
-    records.push(toRecord(row, scores));
+  const rows = (data as DbCerapan[]).filter(
+    (row) => !isTestCerapanRecord({ namaGuru: row.nama_guru })
+  );
+  if (!rows.length) return [];
+
+  // Satu query untuk SEMUA markah — elak N+1 (dulu satu query per rekod).
+  // PENTING: PostgREST hadkan 1000 baris setiap respons, jadi kena paginate
+  // (93 rekod × ~38 item > 1000 baris) atau markah hilang/tak lengkap.
+  const scoresByCerapan = new Map<string, Record<string, InputValue>>();
+  const ids = rows.map((r) => r.id);
+  const ID_CHUNK = 40;
+  const PAGE = 1000;
+
+  for (let i = 0; i < ids.length; i += ID_CHUNK) {
+    const slice = ids.slice(i, i + ID_CHUNK);
+    let from = 0;
+    for (;;) {
+      const { data: scoreRows, error: scoreErr } = await supabase
+        .from("cerapan_scores")
+        .select("cerapan_id, item_id, input_value")
+        .in("cerapan_id", slice)
+        .order("cerapan_id", { ascending: true })
+        .order("item_id", { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (scoreErr) throwIfError(scoreErr);
+
+      const batch = (scoreRows ?? []) as {
+        cerapan_id: string;
+        item_id: string;
+        input_value: number;
+      }[];
+
+      for (const s of batch) {
+        let bucket = scoresByCerapan.get(s.cerapan_id);
+        if (!bucket) {
+          bucket = {};
+          scoresByCerapan.set(s.cerapan_id, bucket);
+        }
+        bucket[s.item_id] = s.input_value as InputValue;
+      }
+
+      if (batch.length < PAGE) break;
+      from += PAGE;
+    }
   }
-  return records;
+
+  return rows.map((row) => toRecord(row, scoresByCerapan.get(row.id) ?? {}));
 }
 
 export async function getCerapanSupabase(

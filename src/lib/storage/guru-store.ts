@@ -1,8 +1,9 @@
 import { isCloudEnabled } from "@/lib/supabase/cloud";
-import { listCerapan } from "@/lib/storage";
 import {
   type SesiGuru,
   getDefaultGuruLabels,
+  getDefaultGuruBySesi,
+  formatStaffLabel,
 } from "@/lib/data/senarai-smkjs";
 
 const KEY = "senarai_guru";
@@ -10,6 +11,17 @@ const KEY = "senarai_guru";
 export interface GuruOption {
   nama: string;
   label: string;
+}
+
+/**
+ * Senarai guru statik (senarai rasmi sekolah) — boleh dipanggil serta-merta
+ * tanpa network supaya dropdown "Nama Guru" tidak kosong semasa API lambat.
+ */
+export function getSenaraiGuruDefaultSync(sesi: SesiGuru): GuruOption[] {
+  return getDefaultGuruBySesi(sesi).map((entry) => ({
+    nama: entry.nama,
+    label: formatStaffLabel(entry),
+  }));
 }
 
 function readMap(): Record<string, string[]> {
@@ -72,16 +84,9 @@ export async function getSenaraiGuruOptions(
     if (!byNama.has(nama)) byNama.set(nama, { nama, label: nama });
   }
 
-  try {
-    const records = await listCerapan();
-    for (const r of records) {
-      if (kod && r.kodSekolah.toUpperCase() !== kod) continue;
-      const nama = r.namaGuru.trim();
-      if (nama && !byNama.has(nama)) byNama.set(nama, { nama, label: nama });
-    }
-  } catch {
-    /* abaikan */
-  }
+  // NOTA: jangan panggil listCerapan() di sini — ia lambat (query penuh) dan
+  // menyebabkan dropdown "Nama Guru" kosong sehingga selesai. /api/guru sudah
+  // gabungkan nama guru dari jadual cerapan di sebelah server.
 
   return [...byNama.values()].sort((a, b) =>
     a.label.localeCompare(b.label, "ms")

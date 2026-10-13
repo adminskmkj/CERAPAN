@@ -23,6 +23,7 @@ import {
 import { ensureScores, saveCerapan } from "@/lib/storage";
 import {
   getSenaraiGuruOptions,
+  getSenaraiGuruDefaultSync,
   tambahGuru,
   type GuruOption,
 } from "@/lib/storage/guru-store";
@@ -184,7 +185,9 @@ export function CerapanForm({ mode, initial }: Props) {
   );
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [senaraiGuru, setSenaraiGuru] = useState<GuruOption[]>([]);
+  const [senaraiGuru, setSenaraiGuru] = useState<GuruOption[]>(() =>
+    getSenaraiGuruDefaultSync(form.sesiGuru)
+  );
   const [guruMode, setGuruMode] = useState<"pilih" | "baharu">(
     initial?.namaGuru ? "pilih" : "pilih"
   );

@@ -71,7 +71,8 @@ export async function GET(request: Request) {
     const { data: cerapanRows } = await admin
       .from("cerapan")
       .select("nama_guru")
-      .eq("kod_sekolah", kodSekolah);
+      .eq("kod_sekolah", kodSekolah)
+      .limit(1000);
 
     for (const row of cerapanRows ?? []) {
       const nama = row.nama_guru?.trim();
