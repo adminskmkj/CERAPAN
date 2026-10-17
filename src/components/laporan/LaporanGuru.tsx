@@ -1,14 +1,16 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import type { CerapanRecord } from "@/lib/types/cerapan";
 import { SUB_STANDARDS } from "@/lib/scoring/standard4";
 import { jenisCerapanLabel } from "@/lib/cerapan/jenis";
 import { compactUlasanText, formatTarikh } from "@/lib/utils";
+import { downloadStandard4Excel } from "@/lib/export/standard4-excel";
 import {
   BarChart3,
   Download,
+  FileSpreadsheet,
   FileText,
   Pencil,
   PlusCircle,
@@ -30,6 +32,8 @@ export function LaporanGuru({ record }: Props) {
     mataPelajaran: record.mataPelajaran,
   });
   const ref = useRef<HTMLDivElement>(null);
+  const [excelBusy, setExcelBusy] = useState(false);
+  const [excelError, setExcelError] = useState("");
 
   const dapatan = record.dapatanPencerap ?? {};
   const langkah = record.langkahPenambahbaikan ?? {};
@@ -53,6 +57,20 @@ export function LaporanGuru({ record }: Props) {
       })
       .from(el)
       .save();
+  }
+
+  async function handleExcel() {
+    setExcelBusy(true);
+    setExcelError("");
+    try {
+      await downloadStandard4Excel(record);
+    } catch (error) {
+      setExcelError(
+        error instanceof Error ? error.message : "Gagal menjana fail Excel."
+      );
+    } finally {
+      setExcelBusy(false);
+    }
   }
 
   return (
@@ -83,6 +101,15 @@ export function LaporanGuru({ record }: Props) {
           <Download className="h-4 w-4" />
           Muat Turun PDF
         </button>
+        <button
+          type="button"
+          onClick={handleExcel}
+          disabled={excelBusy}
+          className="inline-flex items-center gap-2 rounded-full border border-stone bg-paper-card px-4 py-2 text-sm font-medium text-ink-2 shadow-soft transition hover:bg-stone-2 disabled:cursor-wait disabled:opacity-60"
+        >
+          <FileSpreadsheet className="h-4 w-4" />
+          {excelBusy ? "Menjana Excel…" : "Muat Turun Excel"}
+        </button>
         <Link
           href={`/cerapan/${record.id}/maklum-balas`}
           className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white shadow-soft transition hover:opacity-90"
@@ -109,6 +136,12 @@ export function LaporanGuru({ record }: Props) {
           </Link>
         )}
       </div>
+
+      {excelError && (
+        <p className="no-print mb-4 text-sm font-medium text-red-700">
+          {excelError}
+        </p>
+      )}
 
       <div ref={ref} className="laporan-formal">
         <div className="laporan-formal-header">
